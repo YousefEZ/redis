@@ -34,6 +34,25 @@ void run_server() {
   server.run();
 }
 
+void run_client() {
+  std::string address, raw_port;
+
+  std::cout << "[MAIN][CLIENT] Enter the server address to connect to: ";
+  std::getline(std::cin, address);
+
+  std::cout << "[MAIN][CLIENT] Enter the server port to connect to: ";
+  std::getline(std::cin, raw_port);
+
+  int port = std::stoi(raw_port);
+  sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+  addr.sin_addr.s_addr = ip_address_value(address);
+
+  Client client{std::move(addr)};
+  client.run();
+}
+
 int main() {
   std::cout << "[MAIN] Welcome to redis." << std::endl;
 
@@ -47,8 +66,7 @@ int main() {
 
   switch (std::stoi(input)) {
   case 0:
-    Client client;
-    client.run();
+    run_client();
     break;
   case 1:
     run_server();

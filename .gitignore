@@ -3,6 +3,7 @@
 
 # build directory
 build
+.solutions
 
 # Compiled Object files
 *.slo

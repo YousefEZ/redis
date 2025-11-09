@@ -1,4 +1,5 @@
 #include "server.h"
+#include "utils.h"
 
 #include <arpa/inet.h>
 #include <cerrno>
@@ -11,14 +12,6 @@
 #include <unistd.h>
 
 Server::Server(sockaddr_in &&address) : m_address{address} {}
-
-void die_on(int rc, const char *message) {
-  if (rc != 0) {
-    std::cerr << "[RC=" << rc << "][ERRNO=" << errno << "] " << message
-              << std::endl;
-    exit(rc);
-  }
-}
 
 void Server::communicate(int fd) {
   char rbuf[64] = {};
@@ -48,11 +41,12 @@ void Server::run() {
 
   int rc = bind(fd, (const sockaddr *)&m_address, sizeof(m_address));
 
-  die_on(rc, "[SERVER][RUN] unable to bind addr, shutting down");
+  utils::die_on(rc, "[SERVER][RUN] unable to bind addr, shutting down");
 
   rc = listen(fd, SOMAXCONN);
 
-  die_on(rc, "[SERVER][RUN] unable to start listening on addr, shutting down");
+  utils::die_on(
+      rc, "[SERVER][RUN] unable to start listening on addr, shutting down");
 
   while (true) {
     struct sockaddr_in client_addr = {};

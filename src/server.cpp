@@ -1,3 +1,69 @@
 #include "server.h"
 
-void Server::run() {}
+#include <arpa/inet.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+Server::Server(sockaddr_in &&address) : m_address{address} {}
+
+void die_on(int rc, const char *message) {
+  if (rc != 0) {
+    std::cerr << "[RC=" << rc << "][ERRNO=" << errno << "] " << message
+              << std::endl;
+    exit(rc);
+  }
+}
+
+void Server::communicate(int fd) {
+  char rbuf[64] = {};
+  ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1);
+
+  if (n < 0) {
+    std::cerr << "[SERVER][COMMUNICATE] read() error";
+    return;
+  }
+
+  std::cout << "[SERVER][COMMUNICATE] received msg: " << rbuf << std::endl;
+
+  char response[] = "ACK";
+  write(fd, response, strlen(response));
+}
+
+void Server::run() {
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  std::cout << "[SERVER][RUN] Created socket with fd: " << fd << std::endl;
+
+  int val = 1;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+
+  std::cout << "[SERVER][RUN] Binding to " << inet_ntoa(m_address.sin_addr)
+            << ":" << ntohs(m_address.sin_port) << std::endl;
+
+  int rc = bind(fd, (const sockaddr *)&m_address, sizeof(m_address));
+
+  die_on(rc, "[SERVER][RUN] unable to bind addr, shutting down");
+
+  rc = listen(fd, SOMAXCONN);
+
+  die_on(rc, "[SERVER][RUN] unable to start listening on addr, shutting down");
+
+  while (true) {
+    struct sockaddr_in client_addr = {};
+
+    socklen_t addrlen = sizeof(client_addr);
+
+    int connfd = accept(fd, (sockaddr *)&client_addr, &addrlen);
+    if (rc < 0) {
+      continue; // there is an error
+    }
+
+    communicate(connfd);
+  }
+}

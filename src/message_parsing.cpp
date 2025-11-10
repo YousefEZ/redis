@@ -4,7 +4,7 @@
 #include <iostream>
 
 void send_message(int fd, const char *message, uint32_t length) {
-  ssize_t n = write(fd, (char *)&length, sizeof(length));
+  ssize_t n = utils::write_full(fd, (char *)&length, sizeof(length));
   if (n != sizeof(length)) {
     // Handle error
     return;

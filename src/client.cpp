@@ -1,9 +1,11 @@
 #include "client.h"
+#include "message_parsing.h"
 #include "utils.h"
 
 #include <arpa/inet.h>
 #include <iostream>
 #include <netinet/in.h>
+#include <string>
 #include <unistd.h>
 
 Client::Client(sockaddr_in address) : addr(address) {}
@@ -15,14 +17,19 @@ void Client::run() {
   int rc = connect(fd, (const sockaddr *)&addr, sizeof(addr));
   utils::die_on(rc, "[CLIENT][RUN] unable to connect to server, shutting down");
 
-  const char message[] = "Hello, Server!";
-  ssize_t n = write(fd, message, sizeof(message));
+  while (true) {
+    std::cout << "Enter the message to send to the server:";
 
-  char rbuf[64] = {};
-  n = read(fd, rbuf, sizeof(rbuf) - 1);
-  utils::die_on(n < 0, "[CLIENT][RUN] read() error");
+    std::string message;
+    std::getline(std::cin, message);
+    send_message(fd, message.c_str(), message.size());
 
-  std::cout << "[CLIENT][RUN] received response: " << rbuf << std::endl;
+    char rbuf[MAX_MESSAGE_LENGTH] = {};
 
+    rc = receive_message(fd, rbuf);
+    utils::die_on(rc, "[CLIENT][RUN] read() error");
+
+    std::cout << "[CLIENT][RUN] received response: " << rbuf << std::endl;
+  }
   close(fd);
 }

@@ -1,7 +1,9 @@
 #include "server.h"
+#include "message_parsing.h"
 #include "utils.h"
 
 #include <arpa/inet.h>
+#include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -14,18 +16,13 @@
 Server::Server(sockaddr_in &&address) : m_address{address} {}
 
 void Server::communicate(int fd) {
-  char rbuf[64] = {};
-  ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1);
-
-  if (n < 0) {
-    std::cerr << "[SERVER][COMMUNICATE] read() error";
-    return;
-  }
+  char rbuf[MAX_MESSAGE_LENGTH] = {};
+  receive_message(fd, rbuf);
 
   std::cout << "[SERVER][COMMUNICATE] received msg: " << rbuf << std::endl;
 
   char response[] = "ACK";
-  write(fd, response, strlen(response));
+  send_message(fd, response, sizeof(response));
 }
 
 void Server::run() {

@@ -3,11 +3,10 @@
 
 #include <cstdint>
 #include <unistd.h>
-
-#define MAX_MESSAGE_LENGTH 4096
+#include <vector>
 
 void send_message(int fd, const char *message, uint32_t length);
 
-int receive_message(int fd, char buffer[MAX_MESSAGE_LENGTH]);
+int receive_message(int fd, std::vector<char> &buffer);
 
 #endif

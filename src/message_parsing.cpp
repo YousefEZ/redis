@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include <iostream>
+#include <vector>
 
 void send_message(int fd, const char *message, uint32_t length) {
   ssize_t n = utils::write_full(fd, (char *)&length, sizeof(length));
@@ -17,7 +18,7 @@ void send_message(int fd, const char *message, uint32_t length) {
   }
 }
 
-int receive_message(int fd, char *buffer) {
+int receive_message(int fd, std::vector<char> &buffer) {
   int payload_size;
   ssize_t n = utils::read_full(fd, (char *)&payload_size, sizeof(uint32_t));
 
@@ -27,8 +28,9 @@ int receive_message(int fd, char *buffer) {
   }
 
   std::cout << "[MESSAGE][RECEIVE] payload size: " << payload_size << std::endl;
+  buffer.reserve(payload_size);
 
-  n = utils::read_full(fd, buffer, payload_size);
+  n = utils::read_full(fd, buffer.data(), payload_size);
 
   if (n < 0) {
     std::cerr << "[MESSAGE][RECEIVE] read() error";

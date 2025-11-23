@@ -11,7 +11,7 @@ void die_on(int condition, const char *message);
 namespace detail {
 
 template <typename FUNC>
-inline int32_t action_full(int fd, char *buf, size_t n, FUNC action) {
+int32_t action_full(int fd, char *buf, size_t n, FUNC action) {
   while (n > 0) {
     ssize_t rv = action(fd, buf, n);
     if (rv <= 0) {

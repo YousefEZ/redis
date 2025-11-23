@@ -19,6 +19,9 @@ struct Connection {
 
   std::vector<char> m_incoming;
   std::vector<char> m_outgoing;
+
+  void read();
+  void write();
 };
 
 } // namespace detail
@@ -27,12 +30,11 @@ class Server {
   const sockaddr_in m_address;
   std::vector<detail::Connection> m_connections;
 
-  void communicate(int connfd);
-  void accept_connection();
   [[nodiscard]] const detail::Connection &socket_connection() const;
 
-  void check_connection(const pollfd &poll_event, const int conn_idx);
-  void check_socket();
+  void remove_closed_connections();
+  void accept_connection(const pollfd &socket_poll);
+  void check_connections(const std::vector<pollfd> &poll_event);
 
 public:
   void run();

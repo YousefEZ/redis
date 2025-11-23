@@ -22,14 +22,26 @@ void Client::run() {
 
     std::string message;
     std::getline(std::cin, message);
-    send_message(fd, message.c_str(), message.size());
-
-    char rbuf[MAX_MESSAGE_LENGTH] = {};
+    rc = send_message(fd, message.c_str(), message.size());
+    if (rc < 0) {
+      std::cerr << "[CLIENT][RUN] send_message() error, shutting down"
+                << std::endl;
+      break;
+    }
+    std::vector<char> rbuf;
+    rbuf.reserve(1024);
 
     rc = receive_message(fd, rbuf);
-    utils::die_on(rc, "[CLIENT][RUN] read() error");
+    utils::die_on(rc < 0, "[CLIENT][RUN] read() error");
 
-    std::cout << "[CLIENT][RUN] received response: " << rbuf << std::endl;
+    std::optional<std::string> msg = consume_message(rbuf);
+    if (msg.has_value())
+      std::cout << "[CLIENT][RUN] received response: " << msg.value()
+                << std::endl;
+    else {
+      std::cerr << "[CLIENT][RUN] malformed response received" << std::endl;
+      break;
+    }
   }
   close(fd);
 }

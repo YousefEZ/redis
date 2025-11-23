@@ -1,40 +1,49 @@
 #include "message_parsing.h"
-#include "utils.h"
 
+#include <cstdint>
+#include <cstring>
 #include <iostream>
+#include <optional>
 #include <vector>
 
-void send_message(int fd, const char *message, uint32_t length) {
-  ssize_t n = utils::write_full(fd, (char *)&length, sizeof(length));
-  if (n != sizeof(length)) {
-    // Handle error
-    return;
-  }
-
+ssize_t send_message(int fd, const char *message, uint32_t length) {
+  ssize_t n = write(fd, (const char *)&length, sizeof(uint32_t));
+  std::cout << "[MESSAGE][PARSING][SENDING] Wrote length of the message: " << n
+            << std::endl;
   n = write(fd, message, length);
-  if (n != length) {
-    // Handle error
-    return;
+  std::cout << "[MESSAGE][PARSING][SENDING] Wrote message of length:" << n
+            << std::endl;
+  return n;
+}
+
+std::optional<std::string> consume_message(std::vector<char> &buffer) {
+  if (buffer.size() < sizeof(uint32_t)) {
+    return {};
   }
+  uint32_t payload_size;
+  memcpy(&payload_size, buffer.data(), sizeof(uint32_t));
+  std::cout << "[MESSAGE][PARSING][CONSUME] payload_size=" << payload_size
+            << std::endl;
+  std::cout << "[MESSAGE][PARSING][CONSUME] buffer_size=" << buffer.size()
+            << std::endl;
+  if (buffer.size() >= payload_size + sizeof(uint32_t)) {
+    std::string value{buffer.data() + sizeof(uint32_t)};
+    buffer.erase(buffer.begin(),
+                 buffer.begin() + sizeof(uint32_t) + payload_size);
+    return value;
+  }
+  return {};
 }
 
 int receive_message(int fd, std::vector<char> &buffer) {
-  int payload_size;
-  ssize_t n = utils::read_full(fd, (char *)&payload_size, sizeof(uint32_t));
+  char buf[64 * 1024];
 
-  if (n < 0) {
-    std::cerr << "[MESSAGE][RECEIVE] unable to grab payload size";
+  ssize_t rv = read(fd, buf, sizeof(buf));
+  if (rv < 0) {
     return -1;
   }
-
-  std::cout << "[MESSAGE][RECEIVE] payload size: " << payload_size << std::endl;
-  buffer.reserve(payload_size);
-
-  n = utils::read_full(fd, buffer.data(), payload_size);
-
-  if (n < 0) {
-    std::cerr << "[MESSAGE][RECEIVE] read() error";
-    return -1;
-  }
-  return 0;
+  std::cout << "[MESSAGE][PARSING][RECEIVE] received " << rv << " bytes"
+            << std::endl;
+  buffer.insert(buffer.end(), buf, buf + rv);
+  return rv;
 }

@@ -7,4 +7,5 @@ target_sources(Redis PRIVATE
     client.cpp
     utils.cpp
     message_parsing.cpp 
+    connection.cpp
   )

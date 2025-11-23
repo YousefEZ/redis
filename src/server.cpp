@@ -1,4 +1,5 @@
 #include "server.h"
+#include "connection.h"
 #include "message_parsing.h"
 #include "utils.h"
 
@@ -20,9 +21,11 @@
 #include <unistd.h>
 #include <vector>
 
+#define SOCKET_ENABLE 1
+
 namespace {
 
-void set_fd_as_nonblocking(int fd) {
+void set_fd_as_nonblocking(FileDescriptor fd) {
 
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
   std::cout << "[SERVER][SET][NONBLOCK] Set fd: " << fd << " as non-blocking"
@@ -30,13 +33,13 @@ void set_fd_as_nonblocking(int fd) {
 }
 
 FileDescriptor setup_listener(const sockaddr_in &address) {
-  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  FileDescriptor fd = socket(AF_INET, SOCK_STREAM, 0);
 
   std::cout << "[SERVER][SETUP][LISTENER] Created socket with fd: " << fd
             << std::endl;
 
-  int val = 1;
-  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+  int opt = SOCKET_ENABLE;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
   std::cout << "[SERVER][SETUP][LISTENER] Binding to "
             << inet_ntoa(address.sin_addr) << ":" << ntohs(address.sin_port)
@@ -56,7 +59,7 @@ FileDescriptor setup_listener(const sockaddr_in &address) {
 }
 
 void prepare_poll_events(std::vector<pollfd> &polls,
-                         const std::vector<detail::Connection> &connections) {
+                         const std::vector<Connection> &connections) {
   polls.reserve(connections.size());
   std::cout << "[SERVER][POLL][PREPARE] preparing poll events for "
             << connections.size() << " connections" << std::endl;
@@ -64,7 +67,7 @@ void prepare_poll_events(std::vector<pollfd> &polls,
 
   std::ranges::transform(connections | std::views::drop(1),
                          std::back_inserter(polls),
-                         [](const detail::Connection &conn) -> pollfd {
+                         [](const Connection &conn) -> pollfd {
                            short events = POLLERR;
                            events |= conn.m_want_read ? POLLIN : 0;
                            events |= conn.m_want_write ? POLLOUT : 0;
@@ -85,8 +88,7 @@ void run_poll(std::vector<pollfd> &polls) {
   utils::die_on(rc < 0, "unable to poll");
 }
 
-void execute_connection_events(const pollfd &poll_event,
-                               detail::Connection &conn) {
+void execute_connection_events(const pollfd &poll_event, Connection &conn) {
 
   if ((poll_event.revents & POLLIN) && conn.m_want_read)
     conn.read();
@@ -105,14 +107,12 @@ void execute_connection_events(const pollfd &poll_event,
 } // namespace
 
 Server::Server(sockaddr_in &&address) : m_address{address} {
-  int socket_fd = setup_listener(m_address);
+  FileDescriptor socket_fd = setup_listener(m_address);
   m_connections.emplace_back(socket_fd);
   set_fd_as_nonblocking(socket_fd);
 }
 
-const detail::Connection &Server::socket_connection() const {
-  return m_connections[0];
-}
+const Connection &Server::socket_connection() const { return m_connections[0]; }
 
 void Server::check_connections(const std::vector<pollfd> &polls) {
   std::ranges::for_each(
@@ -137,7 +137,7 @@ void Server::accept_connection(const pollfd &socket_poll) {
   struct sockaddr_in client_addr = {};
 
   socklen_t addrlen = sizeof(client_addr);
-  int connfd =
+  FileDescriptor connfd =
       accept(socket_connection().m_fd, (sockaddr *)&client_addr, &addrlen);
   if (connfd < 0) {
     return;
@@ -148,51 +148,6 @@ void Server::accept_connection(const pollfd &socket_poll) {
   m_connections.emplace_back(connfd);
   m_connections.back().m_want_read = true;
 }
-
-namespace detail {
-
-static const char ACK[] = "ACK";
-
-void Connection::read() {
-  std::cout << "[SERVER][CONNECTION][READ] receiving server message "
-               "on connection fd: "
-            << m_fd << std::endl;
-  ssize_t rc = receive_message(m_fd, m_incoming);
-  if (rc <= 0) {
-    m_want_close = true;
-    std::cout << "[SERVER][CONNECTION][READ] connection closed by peer fd: "
-              << m_fd << std::endl;
-    return;
-  }
-  // read the vector and determine whether the full message is there
-  if (std::optional<std::string> message = consume_message(m_incoming)) {
-    // do action on the read message
-    std::cout << "[SERVER][CONNECTION][READ] message=" << message.value()
-              << std::endl;
-    m_want_write = true;
-    m_want_read = false;
-    m_outgoing.insert(m_outgoing.end(), ACK, ACK + sizeof(ACK));
-  } else {
-    std::cout << "[SERVER][CONNECTION][READ] incomplete message, waiting for "
-                 "more data"
-              << std::endl;
-  }
-}
-
-void Connection::write() {
-  if (m_outgoing.size() == 0) {
-    m_want_read = true;
-    m_want_write = false;
-    return;
-  }
-  send_message(m_fd, m_outgoing.data(), m_outgoing.size());
-  m_outgoing.clear();
-  std::cout << "[SERVER][CONNECTION][WRITE] sent server message on "
-               "connection fd: "
-            << m_fd << std::endl;
-}
-
-} // namespace detail
 
 void Server::run() {
   std::vector<pollfd> polls;

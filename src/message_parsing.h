@@ -1,6 +1,7 @@
 #ifndef MESSAGE_PARSING_H
 #define MESSAGE_PARSING_H
 
+#include "buffer.h"
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -9,8 +10,8 @@
 
 ssize_t send_message(int fd, const char *message, uint32_t length);
 
-std::optional<std::string> consume_message(std::vector<char> &buffer);
+std::optional<std::string> consume_message(Buffer &buffer);
 
-int receive_message(int fd, std::vector<char> &buffer);
+ssize_t receive_message(int fd, std::vector<char> &buffer);
 
 #endif

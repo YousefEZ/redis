@@ -1,4 +1,5 @@
 #include "client.h"
+#include "buffer.h"
 #include "message_parsing.h"
 #include "utils.h"
 
@@ -28,10 +29,10 @@ void Client::run() {
                 << std::endl;
       break;
     }
-    std::vector<char> rbuf;
-    rbuf.reserve(1024);
+    Buffer rbuf(1024);
 
-    rc = receive_message(fd, rbuf);
+    rc = rbuf.read_from(fd);
+
     utils::die_on(rc < 0, "[CLIENT][RUN] read() error");
 
     std::optional<std::string> msg = consume_message(rbuf);

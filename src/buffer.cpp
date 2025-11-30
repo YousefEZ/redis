@@ -45,12 +45,13 @@ void Buffer::append(const char *buf, ssize_t n) {
     ssize_t written_bytes = end - data_end;
     if (start.get() + n - written_bytes > data_start)
       throw std::runtime_error("buffer ran out of memory");
-
-    memcpy(data_end, buf, end - data_end);
+    if (written_bytes > 0)
+      memcpy(data_end, buf, written_bytes);
     memcpy(start.get(), buf + written_bytes, n - written_bytes);
     data_end = start.get() + n - written_bytes;
   } else {
     memcpy(data_end, buf, n);
+    data_end = data_end + n;
   }
 }
 
@@ -68,8 +69,10 @@ ssize_t Buffer::write_to(const int fd, ssize_t n) const {
 
 void Buffer::cpy(void *dst, ssize_t n) const {
   if (data_start + n > end) {
-    memcpy(dst, data_start, end - data_start);
-    memcpy(dst, start.get(), n - (end - data_start));
+    ssize_t last_part_size = end - data_start;
+    memcpy(dst, data_start, last_part_size);
+    memcpy(static_cast<char *>(dst) + last_part_size, start.get(),
+           n - last_part_size);
     return;
   }
 

@@ -6,14 +6,13 @@
 #include <iostream>
 #include <optional>
 
-ssize_t send_message(int fd, const char *message, uint32_t length) {
-  ssize_t n = write(fd, (const char *)&length, sizeof(uint32_t));
-  std::cout << "[MESSAGE][PARSING][SENDING] Wrote length of the message: " << n
-            << std::endl;
-  n = write(fd, message, length);
-  std::cout << "[MESSAGE][PARSING][SENDING] Wrote message of length:" << n
-            << std::endl;
-  return n;
+void write_message(const char *message, uint32_t length, Buffer &buffer) {
+  buffer.append((const char *)&length, sizeof(uint32_t));
+  std::cout << "[MESSAGE][RESPONDING][SENDING] Wrote length of the message: "
+            << length << std::endl;
+  buffer.append(message, length);
+  std::cout << "[MESSAGE][RESPONDING][SENDING] Wrote message of length:"
+            << length << std::endl;
 }
 
 std::optional<std::string> consume_message(Buffer &buffer) {

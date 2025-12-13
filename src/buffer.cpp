@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <unistd.h>
@@ -14,11 +15,14 @@ Buffer::Buffer(ssize_t size)
 ssize_t Buffer::read_from(const int fd) {
   if (data_start <= data_end) {
     // init case where start is before end
+    ssize_t max_read = end - data_end;
     ssize_t first_read = read(fd, data_end, end - data_end);
     if (first_read < 0)
       return first_read;
-    // wrap to data_start
     data_end = data_end + first_read;
+    if (first_read < max_read)
+      return first_read;
+    // wrap to data_start
     ssize_t second_read = read(fd, start.get(), data_start - start.get() - 1);
     if (second_read < 0)
       return second_read;
@@ -27,6 +31,7 @@ ssize_t Buffer::read_from(const int fd) {
   }
 
   ssize_t rv = read(fd, data_end, data_start - data_end);
+  std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << rv << std::endl;
   if (rv >= 0) [[likely]]
     data_end += rv;
   return rv;

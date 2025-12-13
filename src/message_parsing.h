@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <vector>
 
-ssize_t send_message(int fd, const char *message, uint32_t length);
+void write_message(const char *message, uint32_t length, Buffer &buffer);
 
 std::optional<std::string> consume_message(Buffer &buffer);
 

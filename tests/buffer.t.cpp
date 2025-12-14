@@ -1,4 +1,5 @@
 #include "buffer.h"
+#include "message_parsing.h"
 
 #include <gtest/gtest.h>
 #include <stdexcept>
@@ -21,7 +22,7 @@ TEST(BufferTest, StringAssertion) {
   const char data[6] = "hello";
   buf.append(data, sizeof(data));
 
-  std::string str = buf.cpy(sizeof(data));
+  std::string str = Codec<std::string>::into(buf, sizeof(data));
   EXPECT_STREQ(str.c_str(), data);
 }
 
@@ -34,7 +35,7 @@ TEST(BufferTest, ConsumeAssertion) {
   buf.consume(2);
   EXPECT_EQ(buf.size(), 4);
 
-  std::string str = buf.cpy(buf.size());
+  std::string str = Codec<std::string>::into(buf, buf.size());
   EXPECT_STREQ(str.c_str(), "llo");
 }
 
@@ -51,7 +52,7 @@ TEST(BufferTest, WrapAroundAppend) {
 
   EXPECT_EQ(buf.size(), 7);
 
-  std::string str = buf.cpy(buf.size());
+  std::string str = Codec<std::string>::into(buf, buf.size());
   EXPECT_STREQ(str.c_str(), "world!");
 }
 

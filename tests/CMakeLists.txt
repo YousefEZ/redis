@@ -12,6 +12,7 @@ enable_testing()
 add_executable(
   tests
   buffer.t.cpp
+  connection.t.cpp
 )
 
 target_link_libraries(

@@ -1,5 +1,5 @@
 #include "buffer.h"
-#include "message_parsing.h"
+#include "codec.h"
 
 #include <gtest/gtest.h>
 #include <stdexcept>

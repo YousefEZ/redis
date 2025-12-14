@@ -1,5 +1,8 @@
 #include "client.h"
+#include "connection.h"
+#include "message_parsing.h"
 #include "server.h"
+#include "utils.h"
 
 #include <arpa/inet.h>
 #include <iostream>
@@ -34,6 +37,17 @@ void run_server() {
   server.run();
 }
 
+Connection<StringEncoder> connect(sockaddr_in address) {
+
+  FileDescriptor fd{socket(AF_INET, SOCK_STREAM, 0)};
+
+  utils::die_on(fd < 0, "[CLIENT][RUN] unable to create socket, shutting down");
+
+  int rc = connect(fd, (const sockaddr *)&address, sizeof(address));
+  utils::die_on(rc, "[CLIENT][RUN] unable to connect to server, shutting down");
+  return {std::move(fd)};
+}
+
 void run_client() {
   std::string address, raw_port;
 
@@ -49,7 +63,7 @@ void run_client() {
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = ip_address_value(address);
 
-  Client client{std::move(addr)};
+  Client client{connect(std::move(addr))};
   client.run();
 }
 

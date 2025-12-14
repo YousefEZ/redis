@@ -24,7 +24,7 @@
 
 namespace {
 
-void set_fd_as_nonblocking(FileDescriptor fd) {
+void set_fd_as_nonblocking(const FileDescriptor &fd) {
 
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
   std::cout << "[SERVER][SET][NONBLOCK] Set fd: " << fd << " as non-blocking"
@@ -58,21 +58,21 @@ FileDescriptor setup_listener(const sockaddr_in &address) {
 }
 
 void prepare_poll_events(std::vector<pollfd> &polls,
-                         const std::vector<Connection> &connections) {
+                         const std::vector<StringConnection> &connections) {
   polls.reserve(connections.size());
   std::cout << "[SERVER][POLL][PREPARE] preparing poll events for "
             << connections.size() << " connections" << std::endl;
-  polls.emplace_back(connections[0].m_fd, POLLIN, 0);
+  polls.emplace_back(connections[0].fd(), POLLIN, 0);
 
   std::ranges::transform(connections | std::views::drop(1),
                          std::back_inserter(polls),
-                         [](const Connection &conn) -> pollfd {
+                         [](const StringConnection &conn) -> pollfd {
                            short events = POLLERR;
-                           events |= conn.m_want_read ? POLLIN : 0;
-                           events |= conn.m_want_write ? POLLOUT : 0;
+                           events |= conn.want_read() ? POLLIN : 0;
+                           events |= conn.want_write() ? POLLOUT : 0;
 
                            return {
-                               .fd = conn.m_fd,
+                               .fd = conn.fd(),
                                .events = events,
                                .revents = 0,
                            };
@@ -87,31 +87,39 @@ void run_poll(std::vector<pollfd> &polls) {
   utils::die_on(rc < 0, "unable to poll");
 }
 
-void execute_connection_events(const pollfd &poll_event, Connection &conn) {
-
-  if ((poll_event.revents & POLLIN) && conn.m_want_read)
-    conn.read();
-
-  if ((poll_event.revents & POLLOUT) && conn.m_want_write)
-    conn.write();
-
-  if ((poll_event.revents & POLLERR) || conn.m_want_close) {
-    close(conn.m_fd);
-    conn.m_want_close = true;
-    std::cout << "[SERVER][EXECUTE][CLOSE] closed connection fd: " << conn.m_fd
-              << std::endl;
-  }
-}
-
 } // namespace
 
-Server::Server(sockaddr_in &&address) : m_address{address} {
-  FileDescriptor socket_fd = setup_listener(m_address);
-  m_connections.emplace_back(socket_fd);
-  set_fd_as_nonblocking(socket_fd);
+std::optional<std::string>
+ServerProcessor::process(const std::string &message) {
+  std::cout << "[SERVER][PROCESSOR][PROCESS] processing message: " << message
+            << std::endl;
+  return std::optional<std::string>("PONG");
 }
 
-const Connection &Server::socket_connection() const { return m_connections[0]; }
+Server::Server(sockaddr_in &&address) : m_address{address} {
+  m_connections.emplace_back(setup_listener(m_address));
+  m_connections.back().fd().as_non_blocking();
+}
+
+const StringConnection &Server::socket_connection() const {
+  return m_connections[0];
+}
+
+void Server::execute_connection_events(const pollfd &poll,
+                                       StringConnection &connection) {
+  if (poll.revents & POLLERR) {
+    std::cout << "[SERVER][CONNECTION][ERROR] error on connection fd: "
+              << connection.fd() << std::endl;
+    connection.close();
+    return;
+  }
+  if (poll.revents & POLLIN) {
+    connection.process(m_processor);
+  }
+  if (poll.revents & POLLOUT) {
+    connection.write();
+  }
+}
 
 void Server::check_connections(const std::vector<pollfd> &polls) {
   std::ranges::for_each(
@@ -123,7 +131,7 @@ void Server::check_connections(const std::vector<pollfd> &polls) {
 void Server::remove_closed_connections() {
   const auto [first, last] =
       std::ranges::remove_if(m_connections, [](const auto &conn) -> bool {
-        return conn.m_want_close;
+        return conn.want_close();
       });
   m_connections.erase(first, last);
 }
@@ -137,15 +145,14 @@ void Server::accept_connection(const pollfd &socket_poll) {
 
   socklen_t addrlen = sizeof(client_addr);
   FileDescriptor connfd =
-      accept(socket_connection().m_fd, (sockaddr *)&client_addr, &addrlen);
+      accept(socket_connection().fd(), (sockaddr *)&client_addr, &addrlen);
   if (connfd < 0) {
     return;
   }
+  connfd.as_non_blocking();
   std::cout << "[SERVER][CONNECTION][ACCEPT] Accepted new connection with fd: "
             << connfd << std::endl;
-  set_fd_as_nonblocking(connfd);
-  m_connections.emplace_back(connfd);
-  m_connections.back().m_want_read = true;
+  m_connections.emplace_back(std::move(connfd), Signals::e_READ);
 }
 
 void Server::run() {

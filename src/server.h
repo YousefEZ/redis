@@ -2,7 +2,7 @@
 #define REDIS_SERVER_H
 
 #include "connection.h"
-#include "message_parsing.h"
+#include "variable_encoder.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

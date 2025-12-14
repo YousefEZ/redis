@@ -2,9 +2,11 @@ add_library(redis_lib
     server.cpp 
     client.cpp
     utils.cpp
-    message_parsing.cpp 
     connection.cpp
     buffer.cpp
+    codec.cpp 
+    encoder.cpp
+    variable_encoder.cpp
   )
 
 

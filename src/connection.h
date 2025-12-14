@@ -2,7 +2,7 @@
 #define INCLUDE_CONNECTION_H
 
 #include "buffer.h"
-#include "message_parsing.h"
+#include "encoder.h"
 
 #include <fcntl.h>
 #include <iostream>

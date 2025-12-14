@@ -1,11 +1,9 @@
 #include "buffer.h"
 #include "utils.h"
 
-#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <unistd.h>
 
 Buffer::Buffer(ssize_t size)
@@ -82,16 +80,6 @@ void Buffer::cpy(void *dst, ssize_t n) const {
   }
 
   memcpy(dst, data_start, n);
-}
-
-std::string Buffer::cpy(ssize_t n) const {
-  std::string contents;
-  contents.resize_and_overwrite(n,
-                                [this](char *buf, std::size_t size) noexcept {
-                                  cpy(buf, size);
-                                  return size;
-                                });
-  return contents;
 }
 
 ssize_t Buffer::size() const {

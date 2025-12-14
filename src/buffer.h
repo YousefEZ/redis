@@ -20,7 +20,6 @@ public:
   void consume(ssize_t n);
 
   void cpy(void *dst, ssize_t n) const;
-  std::string cpy(ssize_t n) const;
 
   ssize_t write_to(const int fd, ssize_t n) const;
 

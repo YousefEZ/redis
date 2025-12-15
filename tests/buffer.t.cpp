@@ -5,9 +5,8 @@
 #include <stdexcept>
 #include <string>
 
-// Demonstrate some basic assertions.
+
 TEST(BufferTest, SizeAssertions) {
-  // Expect two strings not to be equal.
   Buffer buf{10};
 
   const char data[6] = "hello";

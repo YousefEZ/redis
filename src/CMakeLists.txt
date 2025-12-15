@@ -7,6 +7,8 @@ add_library(redis_lib
     codec.cpp 
     encoder.cpp
     variable_encoder.cpp
+    file_descriptor.cpp
+    signals.cpp
   )
 
 

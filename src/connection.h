@@ -3,8 +3,9 @@
 
 #include "buffer.h"
 #include "encoder.h"
+#include "file_descriptor.h"
+#include "signals.h"
 
-#include <fcntl.h>
 #include <iostream>
 #include <optional>
 #include <sys/poll.h>
@@ -13,65 +14,10 @@
 
 #define MAX_BUFFER_SIZE 4096
 
-struct FileDescriptor {
-  int m_fd{-1};
-
-  FileDescriptor(int fd) : m_fd{fd} {}
-  FileDescriptor(const FileDescriptor &) = delete;
-  FileDescriptor(FileDescriptor &&other) : m_fd{other.m_fd} { other.m_fd = -1; }
-  FileDescriptor &operator=(const FileDescriptor &) = delete;
-  FileDescriptor &operator=(FileDescriptor &&other) {
-    std::swap(this->m_fd, other.m_fd);
-    return *this;
-  }
-
-  ~FileDescriptor() {
-    if (m_fd >= 0) {
-      close(m_fd);
-    }
-  }
-
-  void as_non_blocking() const {
-    fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL, 0) | O_NONBLOCK);
-  }
-  operator int() const { return m_fd; }
-};
-
 template <typename PROCESSOR, typename T>
 concept Processor = requires(PROCESSOR &processor, T message) {
   { processor.process(message) } -> std::same_as<std::optional<T>>;
 };
-
-enum struct Signals : uint8_t {
-  e_NONE = 0x0,
-  e_READ = 0x1,
-  e_WRITE = 0x2,
-  e_CLOSE = 0x4
-};
-
-inline Signals operator&(Signals a, Signals b) {
-  return static_cast<Signals>(static_cast<uint8_t>(a) &
-                              static_cast<uint8_t>(b));
-}
-
-inline Signals operator|(Signals a, Signals b) {
-  return static_cast<Signals>(static_cast<uint8_t>(a) |
-                              static_cast<uint8_t>(b));
-}
-
-inline Signals &operator&=(Signals &a, Signals b) {
-  a = a & b;
-  return a;
-}
-
-inline Signals operator~(Signals a) {
-  return static_cast<Signals>(~static_cast<uint8_t>(a));
-}
-
-inline Signals &operator|=(Signals &a, Signals b) {
-  a = a | b;
-  return a;
-}
 
 template <Encoder ENCODER, ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
 class Connection {

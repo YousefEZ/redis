@@ -1,16 +1,20 @@
 #ifndef REDIS_CLIENT_H
 #define REDIS_CLIENT_H
 
+#include "connection.h"
+#include "variable_encoder.h"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 
 class Client {
 
-  sockaddr_in addr;
+  Connection<StringEncoder> m_conn;
 
 public:
-  Client(sockaddr_in address);
+  Client(Connection<StringEncoder> &&conn) : m_conn(std::move(conn)) {};
+
   void run();
 };
 

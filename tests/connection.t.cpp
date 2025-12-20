@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-class ConnectionTest : public testing::Test {
+class StringConnectionTest : public testing::Test {
   std::array<int, 2> m_fds;
 
   StringConnection m_server;
@@ -22,7 +22,7 @@ class ConnectionTest : public testing::Test {
   }
 
 public:
-  ConnectionTest()
+  StringConnectionTest()
       : m_fds{init_fds()}, m_server{m_fds[0]}, m_client{m_fds[1]} {}
 
   StringConnection &server_side() { return m_server; }
@@ -38,7 +38,7 @@ struct StringProcessor {
   }
 };
 
-TEST_F(ConnectionTest, TestSending) {
+TEST_F(StringConnectionTest, TestSendAndReceive) {
   std::string message = "Hello, World!";
   server_side().send(message);
 

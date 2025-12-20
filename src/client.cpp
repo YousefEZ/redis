@@ -29,7 +29,7 @@ void Client::run() {
     std::string message;
     std::getline(std::cin, message);
 
-    m_conn.send(std::move(message), message.size());
+    m_conn.send(std::move(message));
 
     m_conn.process(processor);
   }

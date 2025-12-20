@@ -82,18 +82,19 @@ ssize_t Buffer::write_to(const int fd, ssize_t n) const
     return utils::write_full(fd, data_start, n);
 }
 
-void Buffer::cpy(void* dst, ssize_t n) const
+void Buffer::cpy(void* dst, ssize_t n, ssize_t offset) const
 {
-    if (data_start + n > end) {
-        ssize_t last_part_size = end - data_start;
-        memcpy(dst, data_start, last_part_size);
+    char* offset_start_pos = data_start + offset;
+    if (offset_start_pos + n > end) {
+        ssize_t last_part_size = end - offset_start_pos;
+        memcpy(dst, offset_start_pos, last_part_size);
         memcpy(static_cast<char*>(dst) + last_part_size,
                start.get(),
                n - last_part_size);
         return;
     }
 
-    memcpy(dst, data_start, n);
+    memcpy(dst, offset_start_pos, n);
 }
 
 ssize_t Buffer::size() const
@@ -105,4 +106,9 @@ ssize_t Buffer::size() const
 bool Buffer::empty() const
 {
     return data_end == data_start;
+}
+
+ssize_t Buffer::capacity() const
+{
+    return end - start.get() - 1;
 }

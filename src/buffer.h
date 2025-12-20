@@ -19,7 +19,7 @@ class Buffer {
 
     void consume(ssize_t n);
 
-    void cpy(void* dst, ssize_t n) const;
+    void cpy(void* dst, ssize_t n, ssize_t offset = 0) const;
 
     ssize_t write_to(const int fd, ssize_t n) const;
 
@@ -27,6 +27,8 @@ class Buffer {
     bool    empty() const;
 
     void clear() { data_start = data_end = start.get(); }
+
+    ssize_t capacity() const;
 };
 
 #endif

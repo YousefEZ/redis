@@ -24,13 +24,6 @@
 
 namespace {
 
-void set_fd_as_nonblocking(const FileDescriptor& fd)
-{
-    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
-    std::cout << "[SERVER][SET][NONBLOCK] Set fd: " << fd << " as non-blocking"
-              << std::endl;
-}
-
 FileDescriptor setup_listener(const sockaddr_in& address)
 {
     FileDescriptor fd = socket(AF_INET, SOCK_STREAM, 0);

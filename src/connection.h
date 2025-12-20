@@ -19,6 +19,12 @@ concept Processor = requires(PROCESSOR &processor, T message) {
   { processor.process(message) } -> std::same_as<std::optional<T>>;
 };
 
+struct Signals {
+  bool read;
+  bool write;
+  bool close;
+};
+
 template <Encoder ENCODER, ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
 class Connection {
 
@@ -33,15 +39,15 @@ class Connection {
   void read();
 
 public:
-  Connection(FileDescriptor &&fd, Signals signals = Signals::e_NONE)
+  Connection(FileDescriptor &&fd, Signals signals = {})
       : m_fd{std::move(fd)}, m_signals(signals) {}
   const FileDescriptor &fd() const { return m_fd; }
 
-  bool want_read() const { return (bool)(m_signals & Signals::e_READ); }
+  bool want_read() const { return (bool)(m_signals.read); }
 
-  bool want_write() const { return (bool)(m_signals & Signals::e_WRITE); }
+  bool want_write() const { return (bool)(m_signals.write); }
 
-  bool want_close() const { return (bool)(m_signals & Signals::e_CLOSE); }
+  bool want_close() const { return (bool)(m_signals.close); }
 
   void send(MessageType &&message, uint32_t length);
   void send(const MessageType &message, uint32_t length);
@@ -52,7 +58,7 @@ public:
     requires Processor<PROCESSOR, MessageType>
   void process(PROCESSOR &processor);
 
-  void close() { m_signals |= Signals::e_CLOSE; }
+  void close() { m_signals.close = true; }
 };
 
 template <Encoder ENCODER, ssize_t BUF_SIZE>
@@ -72,8 +78,8 @@ void Connection<ENCODER, BUF_SIZE>::read() {
 template <Encoder ENCODER, ssize_t BUF_SIZE>
 void Connection<ENCODER, BUF_SIZE>::write() {
   if (m_outgoing.size() == 0) {
-    m_signals |= Signals::e_READ;
-    m_signals &= ~Signals::e_WRITE;
+    m_signals.read = true;
+    m_signals.write = false;
     return;
   }
   if (m_outgoing.write_to(m_fd, m_outgoing.size()) < 0) {
@@ -97,8 +103,8 @@ template <Encoder ENCODER, ssize_t BUF_SIZE>
 void Connection<ENCODER, BUF_SIZE>::send(MessageType &&message,
                                          uint32_t length) {
   ENCODER::write(std::move(message), m_outgoing);
-  m_signals |= Signals::e_WRITE;
-  m_signals &= ~Signals::e_READ;
+  m_signals.write = true;
+  m_signals.read = false;
   write();
 }
 
@@ -106,8 +112,8 @@ template <Encoder ENCODER, ssize_t BUF_SIZE>
 void Connection<ENCODER, BUF_SIZE>::send(const MessageType &message,
                                          uint32_t length) {
   ENCODER::write(message, m_outgoing);
-  m_signals |= Signals::e_WRITE;
-  m_signals &= ~Signals::e_READ;
+  m_signals.write = true;
+  m_signals.read = false;
   write();
 }
 
@@ -124,8 +130,8 @@ void Connection<ENCODER, BUF_SIZE>::process(PROCESSOR &processor) {
     if (std::optional<MessageType> response =
             processor.process(std::move(*message))) {
       ENCODER::write(std::move(*response), m_outgoing);
-      m_signals |= Signals::e_WRITE;
-      m_signals &= ~Signals::e_READ;
+      m_signals.write = true;
+      m_signals.read = false;
     }
   }
 

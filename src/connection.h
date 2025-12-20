@@ -4,7 +4,6 @@
 #include "buffer.h"
 #include "encoder.h"
 #include "file_descriptor.h"
-#include "signals.h"
 
 #include <iostream>
 #include <optional>
@@ -43,14 +42,13 @@ public:
       : m_fd{std::move(fd)}, m_signals(signals) {}
   const FileDescriptor &fd() const { return m_fd; }
 
-  bool want_read() const { return (bool)(m_signals.read); }
+  bool want_read() const { return m_signals.read; }
 
-  bool want_write() const { return (bool)(m_signals.write); }
+  bool want_write() const { return m_signals.write; }
 
-  bool want_close() const { return (bool)(m_signals.close); }
+  bool want_close() const { return m_signals.close; }
 
-  void send(MessageType &&message, uint32_t length);
-  void send(const MessageType &message, uint32_t length);
+  template <typename MESSAGE> void send(MESSAGE &&message);
 
   void write();
 
@@ -100,18 +98,9 @@ void Connection<ENCODER, BUF_SIZE>::write() {
 }
 
 template <Encoder ENCODER, ssize_t BUF_SIZE>
-void Connection<ENCODER, BUF_SIZE>::send(MessageType &&message,
-                                         uint32_t length) {
-  ENCODER::write(std::move(message), m_outgoing);
-  m_signals.write = true;
-  m_signals.read = false;
-  write();
-}
-
-template <Encoder ENCODER, ssize_t BUF_SIZE>
-void Connection<ENCODER, BUF_SIZE>::send(const MessageType &message,
-                                         uint32_t length) {
-  ENCODER::write(message, m_outgoing);
+template <typename MESSAGE>
+void Connection<ENCODER, BUF_SIZE>::send(MESSAGE &&message) {
+  ENCODER::write(std::forward<MESSAGE>(message), m_outgoing);
   m_signals.write = true;
   m_signals.read = false;
   write();

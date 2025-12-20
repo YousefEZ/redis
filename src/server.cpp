@@ -152,7 +152,7 @@ void Server::accept_connection(const pollfd &socket_poll) {
   connfd.as_non_blocking();
   std::cout << "[SERVER][CONNECTION][ACCEPT] Accepted new connection with fd: "
             << connfd << std::endl;
-  m_connections.emplace_back(std::move(connfd), Signals::e_READ);
+  m_connections.emplace_back(std::move(connfd), Signals{.read = true});
 }
 
 void Server::run() {

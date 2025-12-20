@@ -9,13 +9,13 @@
 #include <sys/socket.h>
 
 class Client {
+    Connection<StringEncoder> m_conn;
 
-  Connection<StringEncoder> m_conn;
+  public:
+    Client(Connection<StringEncoder>&& conn)
+    : m_conn(std::move(conn)){};
 
-public:
-  Client(Connection<StringEncoder> &&conn) : m_conn(std::move(conn)) {};
-
-  void run();
+    void run();
 };
 
 #endif

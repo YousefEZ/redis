@@ -5,20 +5,20 @@
 #include <unistd.h>
 
 struct FileDescriptor {
-  int m_fd{-1};
+    int m_fd{-1};
 
-  FileDescriptor(int fd);
+    FileDescriptor(int fd);
 
-  FileDescriptor(const FileDescriptor &) = delete;
-  FileDescriptor &operator=(const FileDescriptor &) = delete;
+    FileDescriptor(const FileDescriptor&)            = delete;
+    FileDescriptor& operator=(const FileDescriptor&) = delete;
 
-  FileDescriptor(FileDescriptor &&other);
-  FileDescriptor &operator=(FileDescriptor &&other);
+    FileDescriptor(FileDescriptor&& other);
+    FileDescriptor& operator=(FileDescriptor&& other);
 
-  ~FileDescriptor();
+    ~FileDescriptor();
 
-  void as_non_blocking() const;
-  operator int() const;
+    void as_non_blocking() const;
+    operator int() const;
 };
 
 #endif

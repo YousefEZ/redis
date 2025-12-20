@@ -5,59 +5,63 @@
 #include <stdexcept>
 #include <string>
 
+TEST(BufferTest, SizeAssertions)
+{
+    Buffer buf{10};
 
-TEST(BufferTest, SizeAssertions) {
-  Buffer buf{10};
+    const char data[6] = "hello";
+    buf.append(data, sizeof(data));
 
-  const char data[6] = "hello";
-  buf.append(data, sizeof(data));
-
-  EXPECT_EQ(buf.size(), 6);
+    EXPECT_EQ(buf.size(), 6);
 }
 
-TEST(BufferTest, StringAssertion) {
-  Buffer buf{10};
+TEST(BufferTest, StringAssertion)
+{
+    Buffer buf{10};
 
-  const char data[6] = "hello";
-  buf.append(data, sizeof(data));
+    const char data[6] = "hello";
+    buf.append(data, sizeof(data));
 
-  std::string str = Codec<std::string>::into(buf, sizeof(data));
-  EXPECT_STREQ(str.c_str(), data);
+    std::string str = Codec<std::string>::into(buf, sizeof(data));
+    EXPECT_STREQ(str.c_str(), data);
 }
 
-TEST(BufferTest, ConsumeAssertion) {
-  Buffer buf{10};
+TEST(BufferTest, ConsumeAssertion)
+{
+    Buffer buf{10};
 
-  const char data[6] = "hello";
-  buf.append(data, sizeof(data));
+    const char data[6] = "hello";
+    buf.append(data, sizeof(data));
 
-  buf.consume(2);
-  EXPECT_EQ(buf.size(), 4);
+    buf.consume(2);
+    EXPECT_EQ(buf.size(), 4);
 
-  std::string str = Codec<std::string>::into(buf, buf.size());
-  EXPECT_STREQ(str.c_str(), "llo");
+    std::string str = Codec<std::string>::into(buf, buf.size());
+    EXPECT_STREQ(str.c_str(), "llo");
 }
 
-TEST(BufferTest, WrapAroundAppend) {
-  Buffer buf{10};
+TEST(BufferTest, WrapAroundAppend)
+{
+    Buffer buf{10};
 
-  const char data1[6] = "hello";
-  buf.append(data1, sizeof(data1));
+    const char data1[6] = "hello";
+    buf.append(data1, sizeof(data1));
 
-  buf.consume(6);
+    buf.consume(6);
 
-  const char data2[7] = "world!";
-  buf.append(data2, sizeof(data2));
+    const char data2[7] = "world!";
+    buf.append(data2, sizeof(data2));
 
-  EXPECT_EQ(buf.size(), 7);
+    EXPECT_EQ(buf.size(), 7);
 
-  std::string str = Codec<std::string>::into(buf, buf.size());
-  EXPECT_STREQ(str.c_str(), "world!");
+    std::string str = Codec<std::string>::into(buf, buf.size());
+    EXPECT_STREQ(str.c_str(), "world!");
 }
 
-TEST(BufferTest, OutOutMemoryAppend) {
-  Buffer buf{10};
+TEST(BufferTest, OutOutMemoryAppend)
+{
+    Buffer buf{10};
 
-  const char data1[12] = "hello world";
-  EXPECT_THROW(buf.append(data1, sizeof(data1)), std::runtime_error);
+    const char data1[12] = "hello world";
+    EXPECT_THROW(buf.append(data1, sizeof(data1)), std::runtime_error);
 }

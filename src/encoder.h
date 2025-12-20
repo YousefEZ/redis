@@ -7,12 +7,16 @@
 #include <optional>
 
 template <typename ENCODER>
-concept Encoder =
-    requires(ENCODER encoder, Buffer &buffer, ENCODER::MessageType message) {
-      { ENCODER::write(message, buffer) } -> std::same_as<void>;
-      {
+concept Encoder = requires(ENCODER              encoder,
+                           Buffer&              buffer,
+                           ENCODER::MessageType message)
+{
+    {
+        ENCODER::write(message, buffer)
+    } -> std::same_as<void>;
+    {
         ENCODER::consume_message(buffer)
-      } -> std::same_as<std::optional<typename ENCODER::MessageType>>;
-    };
+    } -> std::same_as<std::optional<typename ENCODER::MessageType> >;
+};
 
 #endif

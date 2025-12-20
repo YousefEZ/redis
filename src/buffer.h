@@ -5,28 +5,28 @@
 #include <unistd.h>
 
 class Buffer {
-  std::unique_ptr<char[]> start;
-  char *end;
-  char *data_start;
-  char *data_end;
+    std::unique_ptr<char[]> start;
+    char*                   end;
+    char*                   data_start;
+    char*                   data_end;
 
-public:
-  Buffer(ssize_t size);
+  public:
+    Buffer(ssize_t size);
 
-  ssize_t read_from(const int fd);
+    ssize_t read_from(const int fd);
 
-  void append(const char *buf, ssize_t n);
+    void append(const char* buf, ssize_t n);
 
-  void consume(ssize_t n);
+    void consume(ssize_t n);
 
-  void cpy(void *dst, ssize_t n) const;
+    void cpy(void* dst, ssize_t n) const;
 
-  ssize_t write_to(const int fd, ssize_t n) const;
+    ssize_t write_to(const int fd, ssize_t n) const;
 
-  ssize_t size() const;
-  bool empty() const;
+    ssize_t size() const;
+    bool    empty() const;
 
-  void clear() { data_start = data_end = start.get(); }
+    void clear() { data_start = data_end = start.get(); }
 };
 
 #endif

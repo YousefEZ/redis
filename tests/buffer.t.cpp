@@ -22,8 +22,9 @@ TEST(BufferTest, StringAssertion)
     const char data[6] = "hello";
     buf.append(data, sizeof(data));
 
-    std::string str = Codec<std::string>::into(buf, sizeof(data));
-    EXPECT_STREQ(str.c_str(), data);
+    char read_data[6];
+    buf.cpy(read_data, sizeof(data));
+    EXPECT_STREQ(read_data, data);
 }
 
 TEST(BufferTest, ConsumeAssertion)
@@ -36,8 +37,9 @@ TEST(BufferTest, ConsumeAssertion)
     buf.consume(2);
     EXPECT_EQ(buf.size(), 4);
 
-    std::string str = Codec<std::string>::into(buf, buf.size());
-    EXPECT_STREQ(str.c_str(), "llo");
+    char read_data[4];
+    buf.cpy(read_data, sizeof(read_data));
+    EXPECT_STREQ(read_data, "llo");
 }
 
 TEST(BufferTest, WrapAroundAppend)
@@ -54,8 +56,9 @@ TEST(BufferTest, WrapAroundAppend)
 
     EXPECT_EQ(buf.size(), 7);
 
-    std::string str = Codec<std::string>::into(buf, buf.size());
-    EXPECT_STREQ(str.c_str(), "world!");
+    char read_data[7];
+    buf.cpy(read_data, sizeof(read_data));
+    EXPECT_STREQ(read_data, data2);
 }
 
 TEST(BufferTest, OutOutMemoryAppend)

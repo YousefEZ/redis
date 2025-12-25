@@ -16,9 +16,7 @@
 template <typename PROCESSOR, typename T>
 concept Processor = requires(PROCESSOR & processor, T message)
 {
-    {
-        processor.process(message)
-    } -> std::same_as<std::optional<T> >;
+    {processor.process(message)}->std::same_as<std::optional<T> >;
 };
 
 struct Signals {

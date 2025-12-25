@@ -28,9 +28,9 @@ template <typename T>
 concept MessageCodec = Serializable<T> && Deserializable<T>;
 
 /** Format on the wire for a single variable length message:
- * *----------*------*
- * | length   | data |
- * *----------*------*
+ * *----------*------------------------------------------*
+ * | length   |                   data                   |
+ * *----------*------------------------------------------*
  */
 template <>
 struct Codec<std::string> {
@@ -49,12 +49,18 @@ struct Codec<std::string> {
 
     static std::optional<std::string> deserialize(Buffer& buffer)
     {
+        auto buffer_size = buffer.size();
+        if (buffer_size < sizeof(uint32_t)) {
+            return {};
+        }
+
         uint32_t payload_size;
         buffer.cpy(&payload_size, sizeof(uint32_t));
-        if (buffer.size() < payload_size + sizeof(uint32_t)) {
+        if (buffer_size < payload_size + sizeof(uint32_t)) {
             return {};
         }
         buffer.consume(sizeof(uint32_t));
+
         std::string contents;
         contents.resize_and_overwrite(payload_size,
                                       [&buffer](char* buf, std::size_t size)
@@ -76,10 +82,10 @@ template <typename T>
 struct Codec<std::vector<T> > {
     static uint32_t calculate_total_size(const std::vector<T>& msgs)
     {
-        uint32_t total_size = sizeof(uint32_t) +
-                              sizeof(uint32_t) * msgs.size();  // for nentities
+        uint32_t total_size = sizeof(uint32_t) +               // for nentities
+                              sizeof(uint32_t) * msgs.size();  // for each len
         for (const auto& msg : msgs) {
-            total_size += Codec<T>::raw_size(msg);  // for message data
+            total_size += Codec<T>::raw_size(msg);  // for each entity_x data
         }
         return total_size;
     }

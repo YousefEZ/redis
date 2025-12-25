@@ -2,7 +2,7 @@
 #define REDIS_CLIENT_H
 
 #include "connection.h"
-#include "variable_encoder.h"
+#include "single_type_encoder.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -13,7 +13,7 @@ class Client {
 
   public:
     Client(Connection<StringEncoder>&& conn)
-    : m_conn(std::move(conn)){};
+    : m_conn(std::move(conn)) {};
 
     void run();
 };

@@ -6,7 +6,7 @@ add_library(redis_lib
     buffer.cpp
     codec.cpp 
     encoder.cpp
-    variable_encoder.cpp
+    single_type_encoder.cpp
     file_descriptor.cpp
     tagged_encoder.cpp
   )

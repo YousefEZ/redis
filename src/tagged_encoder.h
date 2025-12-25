@@ -6,6 +6,14 @@
 
 #include <variant>
 
+#define RETURN_IF_NOT_VOID(expr)                                              \
+    if constexpr (!std::is_void_v<decltype(expr)>) {                          \
+        return expr;                                                          \
+    }                                                                         \
+    else {                                                                    \
+        expr;                                                                 \
+    }
+
 template <typename T, typename... Ts>
 struct index_of;
 
@@ -43,21 +51,18 @@ struct Messages {
     static auto dispatch_impl(Tag id, F&& f, ARGS&&... args)
     {
         if (id == 0) {
-            if constexpr (std::is_void_v<decltype(
-                              f.template operator()<T>(args...))>) {
-                f.template operator()<T>(std::forward<ARGS>(args)...);
-            }
-            else {
-                return f.template operator()<T>(std::forward<ARGS>(args)...);
-            }
+            RETURN_IF_NOT_VOID((f.template operator()<T>(args...)));
         }
         else {
-            if constexpr (sizeof...(Rest) > 0)
-                dispatch_impl<F, Rest...>(id - 1,
-                                          std::forward<F>(f),
-                                          std::forward<ARGS>(args)...);
-            else
+            if constexpr (sizeof...(Rest) > 0) {
+                RETURN_IF_NOT_VOID(
+                    (dispatch_impl<F, Rest...>(id - 1,
+                                               std::forward<F>(f),
+                                               std::forward<ARGS>(args)...)));
+            }
+            else {
                 __builtin_unreachable();  // or throw/assert
+            }
         }
     }
 };

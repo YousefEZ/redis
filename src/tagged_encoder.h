@@ -64,7 +64,8 @@ struct Messages {
 
 template <template <typename> typename CODEC, class MESSAGES>
 struct TaggedEncoder {
-    using Tag = MESSAGES::Tag;
+    using Tag         = MESSAGES::Tag;
+    using MessageType = MESSAGES::MessageVariant;
 
     template <typename T>
     static void write(T&& message, Buffer& buffer)

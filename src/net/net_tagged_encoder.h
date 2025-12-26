@@ -77,18 +77,31 @@ struct TaggedEncoder {
     using Tag         = MESSAGES::Tag;
     using MessageType = MESSAGES::MessageVariant;
 
+  private:
+    static constexpr auto deserialize = []<typename T>(Buffer& buffer)
+        -> std::optional<typename MESSAGES::MessageVariant> {
+        return CODEC<T>::deserialize(buffer);
+    };
+
     template <typename T>
-    static void write(T&& message, Buffer& buffer)
+    static void write_impl(T&& message, Buffer& buffer)
     {
         Tag id = MESSAGES::template id<std::decay_t<T> >();
         buffer.append((char*)&id, sizeof(id));
         CODEC<std::decay_t<T> >::serialize(std::forward<T>(message), buffer);
     }
 
-    static constexpr auto deserialize = []<typename T>(Buffer& buffer)
-        -> std::optional<typename MESSAGES::MessageVariant> {
-        return CODEC<T>::deserialize(buffer);
-    };
+  public:
+    static void write(std::variant<MessageType>&& message, Buffer& buffer)
+    {
+        std::visit(
+            [&buffer](auto&& msg) {
+                TaggedEncoder<CODEC, MESSAGES>::write_impl(
+                    std::forward<decltype(msg)>(msg),
+                    buffer);
+            },
+            std::move(message));
+    }
 
     static std::optional<typename MESSAGES::MessageVariant>
     consume_message(Buffer& buffer)

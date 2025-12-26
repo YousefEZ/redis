@@ -49,7 +49,7 @@ template <typename CONNECTION, typename PROCESSOR>
 class Server {
     const sockaddr_in       m_address;
     std::vector<CONNECTION> m_connections;
-    PROCESSOR               m_processor;
+    PROCESSOR&              m_processor;
 
     [[nodiscard]] const CONNECTION& socket_connection() const;
 
@@ -61,15 +61,17 @@ class Server {
   public:
     void run();
 
-    Server(sockaddr_in&& address);
+    Server(sockaddr_in&& address, PROCESSOR& processor);
 };
 
 namespace {
 }  // namespace
 
 template <typename CONNECTION, typename PROCESSOR>
-Server<CONNECTION, PROCESSOR>::Server(sockaddr_in&& address)
+Server<CONNECTION, PROCESSOR>::Server(sockaddr_in&& address,
+                                      PROCESSOR&    processor)
 : m_address{address}
+, m_processor{processor}
 {
     m_connections.emplace_back(detail::setup_listener(m_address));
     m_connections.back().fd().as_non_blocking();

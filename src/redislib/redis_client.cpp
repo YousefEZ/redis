@@ -1,11 +1,14 @@
-#include "client.h"
-#include "connection.h"
+#include "redis_client.h"
+
+#include <net_connection.h>
 
 #include <arpa/inet.h>
 #include <iostream>
 #include <netinet/in.h>
+#include <optional>
 #include <string>
 #include <unistd.h>
+namespace redis {
 
 namespace {
 
@@ -35,3 +38,5 @@ void Client::run()
         m_conn.process(processor);
     }
 }
+
+}  // namespace redis

@@ -1,9 +1,9 @@
 #ifndef INCLUDE_CONNECTION_H
 #define INCLUDE_CONNECTION_H
 
-#include "buffer.h"
-#include "encoder.h"
-#include "file_descriptor.h"
+#include "net_buffer.h"
+#include "net_encoder.h"
+#include "net_file_descriptor.h"
 
 #include <iostream>
 #include <optional>

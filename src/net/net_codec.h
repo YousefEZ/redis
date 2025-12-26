@@ -1,7 +1,7 @@
 #ifndef INCLUDED_CODEC_H
 #define INCLUDED_CODEC_H
 
-#include "buffer.h"
+#include "net_buffer.h"
 
 #include <concepts>
 #include <cstdint>

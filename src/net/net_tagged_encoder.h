@@ -1,8 +1,8 @@
 #ifndef INCLUDED_TAGGED_ENCODER_H
 #define INCLUDED_TAGGED_ENCODER_H
 
-#include "buffer.h"
-#include "codec.h"
+#include "net_buffer.h"
+#include "net_codec.h"
 
 #include <variant>
 

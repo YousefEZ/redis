@@ -1,7 +1,7 @@
 #ifndef INCLUDED_ENCODER_H
 #define INCLUDED_ENCODER_H
 
-#include "buffer.h"
+#include "net_buffer.h"
 
 #include <concepts>
 #include <optional>

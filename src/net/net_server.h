@@ -1,8 +1,8 @@
 #ifndef REDIS_SERVER_H
 #define REDIS_SERVER_H
 
-#include "connection.h"
-#include "single_type_encoder.h"
+#include "net_connection.h"
+#include "net_single_type_encoder.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

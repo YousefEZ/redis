@@ -1,6 +1,6 @@
-#include "server.h"
-#include "connection.h"
-#include "utils.h"
+#include "net_server.h"
+#include "net_connection.h"
+#include "net_utils.h"
 
 #include <algorithm>
 #include <arpa/inet.h>

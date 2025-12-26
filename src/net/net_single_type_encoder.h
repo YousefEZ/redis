@@ -1,8 +1,8 @@
 #ifndef INCLUDED_SINGLE_TYPE_ENCODER_H
 #define INCLUDED_SINGLE_TYPE_ENCODER_H
 
-#include "buffer.h"
-#include "codec.h"
+#include "net_buffer.h"
+#include "net_codec.h"
 
 #include <optional>
 

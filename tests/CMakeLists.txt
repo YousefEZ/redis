@@ -13,6 +13,7 @@ add_executable(
   tests
   buffer.t.cpp
   connection.t.cpp
+  tagged_encoder.t.cpp
 )
 
 target_link_libraries(

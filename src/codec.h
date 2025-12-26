@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 template <typename T>
@@ -27,6 +28,36 @@ concept Deserializable = requires(Buffer & buffer)
 template <typename T>
 concept MessageCodec = Serializable<T> && Deserializable<T>;
 
+/** Format on the wire for a single fixed-length message:
+ * *----------------------------------------*
+ * |                 data                   |
+ * *----------------------------------------*
+ */
+template <typename T>
+requires std::is_scalar_v<T> struct Codec<T> {
+    static constexpr bool variable_size = false;
+
+    static bool serialize(const T& msg, Buffer& buffer)
+    {
+        if (sizeof(T) > buffer.capacity() - buffer.size()) {
+            return false;
+        }
+        buffer.append((char*)&msg, sizeof(T));
+        return true;
+    }
+
+    static std::optional<T> deserialize(Buffer& buffer)
+    {
+        if (buffer.size() < sizeof(T)) {
+            return {};
+        }
+
+        T contents;
+        buffer.cpy(&contents, sizeof(T));
+        return contents;
+    }
+};
+
 /** Format on the wire for a single variable length message:
  * *----------*------------------------------------------*
  * | length   |                   data                   |
@@ -34,6 +65,7 @@ concept MessageCodec = Serializable<T> && Deserializable<T>;
  */
 template <>
 struct Codec<std::string> {
+    static constexpr bool variable_size = true;
     static uint32_t raw_size(const std::string& msg) { return msg.size(); }
 
     static bool serialize(const std::string& msg, Buffer& buffer)
@@ -77,10 +109,24 @@ struct Codec<std::string> {
  * *-----------*-----*----------*-----*----------*-----*-----*----------*
  * | nentities | len | entity_1 | len | entity_2 | ... | len | entity_n |
  * *-----------*-----*----------*-----*----------*-----*-----*----------*
+ *
+ *
+ * Format on the write for vector fixed size messages:
+ * *-----------*----------------*----------------*-----*----------------*
+ * | nentities |    entity_1    |    entity_2    | ... |     entity_n   |
+ * *-----------*----------------*----------------*-----*----------------*
  */
 template <typename T>
 struct Codec<std::vector<T> > {
     static uint32_t calculate_total_size(const std::vector<T>& msgs)
+        requires(!Codec<T>::variable_size)
+    {
+        return sizeof(uint32_t) +        // for nentities
+               sizeof(T) * msgs.size();  // for each entity
+    }
+
+    static uint32_t calculate_total_size(const std::vector<T>& msgs)
+        requires(Codec<T>::variable_size)
     {
         uint32_t total_size = sizeof(uint32_t) +               // for nentities
                               sizeof(uint32_t) * msgs.size();  // for each len

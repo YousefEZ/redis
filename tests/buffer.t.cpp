@@ -1,9 +1,7 @@
 #include "buffer.h"
-#include "codec.h"
 
 #include <gtest/gtest.h>
 #include <stdexcept>
-#include <string>
 
 TEST(BufferTest, SizeAssertions)
 {

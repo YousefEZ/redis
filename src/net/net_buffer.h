@@ -1,8 +1,10 @@
-#ifndef INCLUDE_BUFFER_H
-#define INCLUDE_BUFFER_H
+#ifndef INCLUDE_NET_BUFFER_H
+#define INCLUDE_NET_BUFFER_H
 
 #include <memory>
 #include <unistd.h>
+
+namespace net {
 
 class Buffer {
     std::unique_ptr<char[]> start;
@@ -30,5 +32,7 @@ class Buffer {
 
     ssize_t capacity() const;
 };
+
+}
 
 #endif

@@ -1,10 +1,12 @@
-#ifndef INCLUDED_SINGLE_TYPE_ENCODER_H
-#define INCLUDED_SINGLE_TYPE_ENCODER_H
+#ifndef INCLUDED_NET_SINGLE_TYPE_ENCODER_H
+#define INCLUDED_NET_SINGLE_TYPE_ENCODER_H
 
 #include "net_buffer.h"
 #include "net_codec.h"
 
 #include <optional>
+
+namespace net {
 
 template <template <typename> typename CODEC, typename T>
 struct SingleTypeEncoder {
@@ -22,5 +24,7 @@ struct SingleTypeEncoder {
 };
 
 using StringEncoder = SingleTypeEncoder<Codec, std::string>;
+
+}  // namespace net
 
 #endif

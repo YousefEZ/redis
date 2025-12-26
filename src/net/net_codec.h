@@ -1,5 +1,5 @@
-#ifndef INCLUDED_CODEC_H
-#define INCLUDED_CODEC_H
+#ifndef INCLUDED_NET_CODEC_H
+#define INCLUDED_NET_CODEC_H
 
 #include "net_buffer.h"
 
@@ -9,6 +9,8 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
+namespace net {
 
 template <typename T>
 struct Codec;
@@ -187,5 +189,6 @@ struct Codec<std::vector<T> > {
         return entities;
     }
 };
+}  // namespace net
 
 #endif

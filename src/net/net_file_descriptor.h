@@ -1,9 +1,10 @@
-#ifndef INCLUDED_FILE_DESCRIPTOR_H
-#define INCLUDED_FILE_DESCRIPTOR_H
+#ifndef INCLUDED_NET_FILE_DESCRIPTOR_H
+#define INCLUDED_NET_FILE_DESCRIPTOR_H
 
 #include <fcntl.h>
 #include <unistd.h>
 
+namespace net {
 struct FileDescriptor {
     int m_fd{-1};
 
@@ -18,7 +19,7 @@ struct FileDescriptor {
     ~FileDescriptor();
 
     void as_non_blocking() const;
-    operator int() const;
+         operator int() const;
 };
-
+}  // namespace net
 #endif

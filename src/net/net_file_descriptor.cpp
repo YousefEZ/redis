@@ -2,6 +2,8 @@
 
 #include <utility>
 
+namespace net {
+
 FileDescriptor::FileDescriptor(int fd)
 : m_fd{fd}
 {
@@ -35,3 +37,5 @@ FileDescriptor::operator int() const
 {
     return m_fd;
 }
+
+}  // namespace net

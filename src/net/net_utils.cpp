@@ -1,6 +1,7 @@
 #include "net_utils.h"
 #include <iostream>
 
+namespace net {
 namespace utils {
 
 void die_on(int rc, const char* message)
@@ -23,3 +24,4 @@ int32_t write_full(int fd, char* buf, size_t n)
 }
 
 }  // namespace utils
+}  // namespace net

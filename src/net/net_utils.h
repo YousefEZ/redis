@@ -1,9 +1,11 @@
-#ifndef REDIS_UTILS_H
-#define REDIS_UTILS_H
+#ifndef INCLUDED_NET_UTILS_H
+#define INCLUDED_NET_UTILS_H
 
 #include <cassert>
 #include <cstdint>
 #include <unistd.h>
+
+namespace net {
 
 namespace utils {
 
@@ -32,5 +34,6 @@ int32_t read_full(int fd, char* buf, size_t n);
 int32_t write_full(int fd, char* buf, size_t n);
 
 }  // namespace utils
+}  // namespace net
 
 #endif

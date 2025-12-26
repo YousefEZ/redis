@@ -1,10 +1,12 @@
-#ifndef INCLUDED_ENCODER_H
-#define INCLUDED_ENCODER_H
+#ifndef INCLUDED_NET_ENCODER_H
+#define INCLUDED_NET_ENCODER_H
 
 #include "net_buffer.h"
 
 #include <concepts>
 #include <optional>
+
+namespace net {
 
 template <typename ENCODER>
 concept Encoder = requires(ENCODER                     encoder,
@@ -15,5 +17,6 @@ concept Encoder = requires(ENCODER                     encoder,
     {ENCODER::consume_message(buffer)}
         ->std::same_as<std::optional<typename ENCODER::MessageType> >;
 };
+}  // namespace net
 
 #endif

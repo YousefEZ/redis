@@ -6,6 +6,8 @@
 #include <memory>
 #include <unistd.h>
 
+namespace net {
+
 Buffer::Buffer(ssize_t size)
 : start(std::make_unique_for_overwrite<char[]>(size))
 , end{start.get() + size}
@@ -112,3 +114,5 @@ ssize_t Buffer::capacity() const
 {
     return end - start.get() - 1;
 }
+
+}  // namespace net

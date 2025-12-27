@@ -92,7 +92,7 @@ struct TaggedEncoder {
     }
 
   public:
-    static void write(std::variant<MessageType>&& message, Buffer& buffer)
+    static void write(MessageType message, Buffer& buffer)
     {
         std::visit(
             [&buffer](auto&& msg) {

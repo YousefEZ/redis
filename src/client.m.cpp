@@ -19,16 +19,17 @@ auto ip_address_value(const std::string& address)
     return addr.s_addr;
 }
 
-Connection<StringEncoder> connect(sockaddr_in address)
+net::Connection<net::StringEncoder> connect(sockaddr_in address)
 {
-    FileDescriptor fd{socket(AF_INET, SOCK_STREAM, 0)};
+    net::FileDescriptor fd{socket(AF_INET, SOCK_STREAM, 0)};
 
-    utils::die_on(fd < 0,
-                  "[CLIENT][RUN] unable to create socket, shutting down");
+    net::utils::die_on(fd < 0,
+                       "[CLIENT][RUN] unable to create socket, shutting down");
 
     int rc = connect(fd, (const sockaddr*)&address, sizeof(address));
-    utils::die_on(rc,
-                  "[CLIENT][RUN] unable to connect to server, shutting down");
+    net::utils::die_on(
+        rc,
+        "[CLIENT][RUN] unable to connect to server, shutting down");
     return {std::move(fd)};
 }
 
@@ -47,7 +48,7 @@ void run_client()
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
     addr.sin_addr.s_addr = ip_address_value(address);
-    Client client{connect(std::move(addr))};
+    redis::Client client{connect(std::move(addr))};
     client.run();
 }
 

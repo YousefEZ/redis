@@ -6,13 +6,13 @@
 
 namespace redis {
 
-using Messages   = net::Messages<std::string, std::vector<std::string> >;
-using KeyEncoder = net::TaggedEncoder<net::Codec, Messages>;
+using MessageTypes = net::Messages<std::string, uint32_t>;
+using KeyEncoder   = net::TaggedEncoder<net::Codec, MessageTypes>;
 
 class RedisProcessor {
   public:
-    std::optional<Messages::MessageVariant>
-    process(Messages::MessageVariant&& request);
+    std::optional<MessageTypes::MessageVariant>
+    process(MessageTypes::MessageVariant request);
 };
 
 using RedisServer = net::Server<net::Connection<KeyEncoder>, RedisProcessor>;

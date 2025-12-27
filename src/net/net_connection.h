@@ -4,7 +4,10 @@
 #include "net_buffer.h"
 #include "net_encoder.h"
 #include "net_file_descriptor.h"
+#include "net_utils.h"
 
+#include <csignal>
+#include <future>
 #include <iostream>
 #include <optional>
 #include <sys/poll.h>
@@ -37,6 +40,7 @@ class Connection {
     Buffer m_outgoing{BUF_SIZE};
 
     void read();
+    void poll_incoming();
 
   public:
     Connection(FileDescriptor&& fd, Signals signals = {})
@@ -52,8 +56,9 @@ class Connection {
 
     bool want_close() const { return m_signals.close; }
 
-    template <typename MESSAGE>
-    void send(MESSAGE&& message);
+    void send(MessageType message);
+
+    std::future<typename ENCODER::MessageType> get_response();
 
     void write();
 
@@ -63,6 +68,17 @@ class Connection {
 
     void close() { m_signals.close = true; }
 };
+
+template <Encoder ENCODER, ssize_t BUF_SIZE>
+void Connection<ENCODER, BUF_SIZE>::poll_incoming()
+{
+    pollfd incoming_poll = {.fd = fd(), .events = POLL_IN | POLL_ERR};
+    int    rc            = poll(&incoming_poll, 1, -1);
+    if (rc < 0 && errno == EINTR) {
+        return;  // not an error
+    }
+    utils::die_on(rc < 0, "unable to poll");
+}
 
 template <Encoder ENCODER, ssize_t BUF_SIZE>
 void Connection<ENCODER, BUF_SIZE>::read()
@@ -108,13 +124,27 @@ void Connection<ENCODER, BUF_SIZE>::write()
 }
 
 template <Encoder ENCODER, ssize_t BUF_SIZE>
-template <typename MESSAGE>
-void Connection<ENCODER, BUF_SIZE>::send(MESSAGE&& message)
+void Connection<ENCODER, BUF_SIZE>::send(MessageType message)
 {
-    ENCODER::write(std::forward<MESSAGE>(message), m_outgoing);
+    ENCODER::write(message, m_outgoing);
     m_signals.write = true;
     m_signals.read  = false;
     write();
+}
+
+template <Encoder ENCODER, ssize_t BUF_SIZE>
+std::future<typename ENCODER::MessageType>
+Connection<ENCODER, BUF_SIZE>::get_response()
+{
+    return std::async([this]() {
+        while (true) {
+            read();
+            if (std::optional<MessageType> message = ENCODER::consume_message(
+                    m_incoming)) {
+                return *message;
+            }
+        }
+    });
 }
 
 template <Encoder ENCODER, ssize_t BUF_SIZE>
@@ -126,8 +156,6 @@ requires Processor<PROCESSOR, typename ENCODER::MessageType> void
     while (std::optional<MessageType> message = ENCODER::consume_message(
                m_incoming)) {
         // do action on the read message
-        std::cout << "[SERVER][CONNECTION][READ] message=" << message.value()
-                  << std::endl;
         if (std::optional<MessageType> response = processor.process(
                 std::move(*message))) {
             ENCODER::write(std::move(*response), m_outgoing);

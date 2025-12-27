@@ -153,7 +153,7 @@ void Server<CONNECTION, PROCESSOR>::run()
 {
     std::vector<pollfd> polls;
     while (true) {
-        prepare_poll_events(polls, m_connections);
+        detail::prepare_poll_events(polls, m_connections);
         detail::run_poll(polls);
 
         check_connections(polls);

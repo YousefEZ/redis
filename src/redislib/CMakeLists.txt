@@ -1,5 +1,6 @@
 add_library(redis_lib 
     redis_client.cpp
+    redis_server.cpp
 )
 
 

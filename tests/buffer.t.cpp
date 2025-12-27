@@ -1,11 +1,11 @@
-#include "buffer.h"
+#include <net_buffer.h>
 
 #include <gtest/gtest.h>
 #include <stdexcept>
 
 TEST(BufferTest, SizeAssertions)
 {
-    Buffer buf{10};
+    net::Buffer buf{10};
 
     const char data[6] = "hello";
     buf.append(data, sizeof(data));
@@ -15,7 +15,7 @@ TEST(BufferTest, SizeAssertions)
 
 TEST(BufferTest, StringAssertion)
 {
-    Buffer buf{10};
+    net::Buffer buf{10};
 
     const char data[6] = "hello";
     buf.append(data, sizeof(data));
@@ -27,7 +27,7 @@ TEST(BufferTest, StringAssertion)
 
 TEST(BufferTest, ConsumeAssertion)
 {
-    Buffer buf{10};
+    net::Buffer buf{10};
 
     const char data[6] = "hello";
     buf.append(data, sizeof(data));
@@ -42,7 +42,7 @@ TEST(BufferTest, ConsumeAssertion)
 
 TEST(BufferTest, WrapAroundAppend)
 {
-    Buffer buf{10};
+    net::Buffer buf{10};
 
     const char data1[6] = "hello";
     buf.append(data1, sizeof(data1));
@@ -61,7 +61,7 @@ TEST(BufferTest, WrapAroundAppend)
 
 TEST(BufferTest, OutOutMemoryAppend)
 {
-    Buffer buf{10};
+    net::Buffer buf{10};
 
     const char data1[12] = "hello world";
     EXPECT_THROW(buf.append(data1, sizeof(data1)), std::runtime_error);

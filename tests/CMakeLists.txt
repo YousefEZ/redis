@@ -18,6 +18,7 @@ add_executable(
 
 target_link_libraries(
   tests
+  net_lib
   redis_lib
   GTest::gtest_main
 )

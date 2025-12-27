@@ -1,14 +1,20 @@
-#include "server.h"
+#include "net_codec.h"
+#include <net_connection.h>
+#include <net_server.h>
+#include <net_single_type_encoder.h>
 
 #include <array>
 #include <csignal>
 #include <gtest/gtest.h>
 #include <stdexcept>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 
 class StringConnectionTest : public testing::Test {
     std::array<int, 2> m_fds;
+    typedef net::Connection<net::SingleTypeEncoder<net::Codec, std::string> >
+        StringConnection;
 
     StringConnection m_server;
     StringConnection m_client;

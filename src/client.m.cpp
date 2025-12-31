@@ -19,7 +19,7 @@ auto ip_address_value(const std::string& address)
     return addr.s_addr;
 }
 
-net::Connection<net::StringEncoder> connect(sockaddr_in address)
+redis::SyncConnection connect(sockaddr_in address)
 {
     net::FileDescriptor fd{socket(AF_INET, SOCK_STREAM, 0)};
 
@@ -48,8 +48,17 @@ void run_client()
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
     addr.sin_addr.s_addr = ip_address_value(address);
-    redis::Client client{connect(std::move(addr))};
-    client.run();
+    redis::SyncClient client{connect(std::move(addr))};
+    while (true) {
+        std::cout << "Enter the message to send to the server:";
+
+        std::string message;
+        std::getline(std::cin, message);
+
+        auto response = client.request(std::move(message));
+        std::cout << "[MAIN][CLIENT] received response: " << response
+                  << std::endl;
+    }
 }
 
 int main()

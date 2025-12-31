@@ -2,8 +2,8 @@
 #define INCLUDED_NET_TAGGED_ENCODER_H
 
 #include "net_buffer.h"
-#include "net_codec.h"
 
+#include <optional>
 #include <variant>
 
 #define NET_RETURN_IF_NOT_VOID(expr)                                          \
@@ -29,7 +29,7 @@ struct index_of<T, U, Ts...>
 
 }  // namespace detail
 
-template <MessageCodec... Types>
+template <typename... Types>
 struct Messages {
     using MessageVariant = std::variant<Types...>;
     using Tag            = unsigned short;
@@ -92,7 +92,7 @@ struct TaggedEncoder {
     }
 
   public:
-    static void write(MessageType message, Buffer& buffer)
+    static void write(const MessageType& message, Buffer& buffer)
     {
         std::visit(
             [&buffer](auto&& msg) {
@@ -100,7 +100,7 @@ struct TaggedEncoder {
                     std::forward<decltype(msg)>(msg),
                     buffer);
             },
-            std::move(message));
+            message);
     }
 
     static std::optional<typename MESSAGES::MessageVariant>

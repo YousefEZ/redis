@@ -2,6 +2,7 @@
 #define INCLUDED_NET_UTILS_H
 
 #include <cassert>
+#include <cerrno>
 #include <cstdint>
 #include <unistd.h>
 
@@ -19,6 +20,9 @@ int32_t action_full(int fd, char* buf, size_t n, FUNC action)
     while (n > 0) {
         ssize_t rv = action(fd, buf, n);
         if (rv <= 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             return rv;
         }
         assert((size_t)rv <= n);

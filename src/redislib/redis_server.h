@@ -1,6 +1,7 @@
 #ifndef INCLUDED_REDIS_SERVER_H
 #define INCLUDED_REDIS_SERVER_H
 
+#include <net_polled_connection.h>
 #include <net_server.h>
 #include <net_tagged_encoder.h>
 
@@ -15,7 +16,8 @@ class RedisProcessor {
     process(MessageTypes::MessageVariant request);
 };
 
-using RedisServer = net::Server<net::Connection<KeyEncoder>, RedisProcessor>;
+using RedisServer =
+    net::Server<net::PolledConnection<KeyEncoder>, RedisProcessor>;
 
 }  // namespace redis
 

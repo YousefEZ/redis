@@ -1,7 +1,6 @@
 #ifndef INCLUDED_NET_SINGLE_TYPE_ENCODER_H
 #define INCLUDED_NET_SINGLE_TYPE_ENCODER_H
 
-#include "net_buffer.h"
 #include "net_codec.h"
 
 #include <optional>
@@ -12,12 +11,14 @@ template <template <typename> typename CODEC, typename T>
 struct SingleTypeEncoder {
     using MessageType = T;
 
-    static void write(const T& message, Buffer& buffer)
+    template <WriteBuffer BUFFER>
+    static void write(const T& message, BUFFER& buffer)
     {
         CODEC<T>::serialize(message, buffer);
     }
 
-    static std::optional<T> consume_message(Buffer& buffer)
+    template <ReadBuffer BUFFER>
+    static std::optional<T> consume_message(BUFFER& buffer)
     {
         return CODEC<T>::deserialize(buffer);
     }

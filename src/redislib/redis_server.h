@@ -12,7 +12,7 @@
 namespace redis {
 
 using MessageTypes = net::Messages<std::string, uint32_t>;
-using KeyEncoder   = net::SingleTypeEncoder<net::Codec, std::string>;
+using KeyEncoder   = net::TaggedEncoder<net::Codec, MessageTypes>;
 
 class RedisProcessor {
   public:

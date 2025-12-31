@@ -1,5 +1,7 @@
-#include "net_codec.h"
+#include <net_blocking_connection.h>
+#include <net_codec.h>
 #include <net_connection.h>
+#include <net_polled_connection.h>
 #include <net_server.h>
 #include <net_single_type_encoder.h>
 
@@ -13,11 +15,12 @@
 
 class StringConnectionTest : public testing::Test {
     std::array<int, 2> m_fds;
-    typedef net::Connection<net::SingleTypeEncoder<net::Codec, std::string> >
-        StringConnection;
+    using TestEncoder      = net::SingleTypeEncoder<net::Codec, std::string>;
+    using ServerConnection = net::PolledConnection<TestEncoder>;
+    using ClientConnection = net::BlockingConnection<TestEncoder>;
 
-    StringConnection m_server;
-    StringConnection m_client;
+    ServerConnection m_server;
+    ClientConnection m_client;
 
     static std::array<int, 2> init_fds()
     {
@@ -36,8 +39,8 @@ class StringConnectionTest : public testing::Test {
     {
     }
 
-    StringConnection& server_side() { return m_server; }
-    StringConnection& client_side() { return m_client; }
+    ServerConnection& server_side() { return m_server; }
+    ClientConnection& client_side() { return m_client; }
 };
 
 struct StringProcessor {
@@ -53,10 +56,10 @@ struct StringProcessor {
 TEST_F(StringConnectionTest, TestSendAndReceive)
 {
     std::string message = "Hello, World!";
-    server_side().send(message);
+    client_side().send(message);
 
     StringProcessor processor;
-    client_side().process(processor);
+    server_side().process(processor);
     EXPECT_TRUE(processor.m_held_message.has_value() &&
                 *processor.m_held_message == message);
 }

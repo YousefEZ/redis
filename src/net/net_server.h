@@ -100,7 +100,7 @@ void Server<ENCODER, PROCESSOR>::remove_closed_connections()
     const auto [first,
                 last] = std::ranges::remove_if(m_connections,
                                                [](const auto& conn) -> bool {
-                                                   return conn.want_close();
+                                                   return conn.is_closed();
                                                });
     m_connections.erase(first, last);
 }

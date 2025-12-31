@@ -4,8 +4,8 @@
 
 namespace redis {
 
-std::optional<MessageTypes::MessageVariant>
-RedisProcessor::process(MessageTypes::MessageVariant request)
+std::optional<KeyEncoder::MessageType>
+RedisProcessor::process(KeyEncoder::MessageType request)
 {
     // Placeholder for processing logic
     return request;  // Echo back the request for now

@@ -1,23 +1,26 @@
 #ifndef INCLUDED_REDIS_SERVER_H
 #define INCLUDED_REDIS_SERVER_H
 
+#include <net_codec.h>
 #include <net_polled_connection.h>
 #include <net_server.h>
+#include <net_single_type_encoder.h>
 #include <net_tagged_encoder.h>
+
+#include <optional>
 
 namespace redis {
 
 using MessageTypes = net::Messages<std::string, uint32_t>;
-using KeyEncoder   = net::TaggedEncoder<net::Codec, MessageTypes>;
+using KeyEncoder   = net::SingleTypeEncoder<net::Codec, std::string>;
 
 class RedisProcessor {
   public:
-    std::optional<MessageTypes::MessageVariant>
-    process(MessageTypes::MessageVariant request);
+    std::optional<KeyEncoder::MessageType>
+    process(KeyEncoder::MessageType request);
 };
 
-using RedisServer =
-    net::Server<net::PolledConnection<KeyEncoder>, RedisProcessor>;
+using RedisServer = net::Server<KeyEncoder, RedisProcessor>;
 
 }  // namespace redis
 

@@ -28,8 +28,9 @@ requires net::Serde<ENCODER, Buffer, Buffer> class PolledConnection
     pollfd get_pollfd() const
     {
         return pollfd{fd(),
-                      (m_signals.read ? POLLIN : 0) |
-                          (m_signals.write ? POLLOUT : 0) | POLLERR,
+                      static_cast<short>((m_signals.read ? POLLIN : 0) |
+                                         (m_signals.write ? POLLOUT : 0) |
+                                         POLLERR),
                       0};
     }
 

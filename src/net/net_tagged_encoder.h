@@ -2,7 +2,9 @@
 #define INCLUDED_NET_TAGGED_ENCODER_H
 
 #include "net_buffer.h"
+#include "net_codec.h"
 
+#include <iostream>
 #include <optional>
 #include <variant>
 
@@ -78,13 +80,14 @@ struct TaggedEncoder {
     using MessageType = MESSAGES::MessageVariant;
 
   private:
-    static constexpr auto deserialize = []<typename T>(Buffer& buffer)
+    static constexpr auto deserialize =
+        []<typename T, ReadBuffer BUFFER>(BUFFER& buffer)
         -> std::optional<typename MESSAGES::MessageVariant> {
         return CODEC<T>::deserialize(buffer);
     };
 
-    template <typename T>
-    static void write_impl(T&& message, Buffer& buffer)
+    template <typename T, WriteBuffer BUFFER>
+    static void write_impl(T&& message, BUFFER& buffer)
     {
         Tag id = MESSAGES::template id<std::decay_t<T> >();
         buffer.append((char*)&id, sizeof(id));
@@ -92,8 +95,10 @@ struct TaggedEncoder {
     }
 
   public:
-    static void write(const MessageType& message, Buffer& buffer)
+    template <WriteBuffer BUFFER>
+    static void write(const MessageType& message, BUFFER& buffer)
     {
+        std::cout << "[TaggedEncoder][write] encoding message" << std::endl;
         std::visit(
             [&buffer](auto&& msg) {
                 TaggedEncoder<CODEC, MESSAGES>::write_impl(
@@ -103,8 +108,9 @@ struct TaggedEncoder {
             message);
     }
 
+    template <ReadBuffer BUFFER>
     static std::optional<typename MESSAGES::MessageVariant>
-    consume_message(Buffer& buffer)
+    consume_message(BUFFER& buffer)
     {
         if (buffer.size() <= sizeof(Tag)) {
             return {};

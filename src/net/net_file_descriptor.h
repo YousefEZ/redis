@@ -19,7 +19,8 @@ struct FileDescriptor {
     ~FileDescriptor();
 
     void as_non_blocking() const;
-         operator int() const;
+
+    operator int() const;
 };
 }  // namespace net
 #endif

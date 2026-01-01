@@ -56,13 +56,18 @@ requires
     typedef ENCODER::MessageType MessageType;
 
     Buffer            m_incoming{BUF_SIZE};
-    SocketWriteBuffer m_outgoing{this->fd()};
-
-    void poll_incoming();
+    SocketWriteBuffer m_outgoing;
 
   public:
     BlockingConnection(FileDescriptor&& fd)
     : Connection{std::move(fd)}
+    , m_outgoing{Connection::fd()}
+    {
+    }
+
+    BlockingConnection(BlockingConnection&& other)
+    : Connection{std::move(other)}
+    , m_outgoing{Connection::fd()}
     {
     }
 
@@ -71,19 +76,6 @@ requires
 
     ENCODER::MessageType get_response();
 };
-
-template <typename ENCODER, ssize_t BUF_SIZE>
-requires net::Serde<ENCODER, SocketWriteBuffer, Buffer> void
-         BlockingConnection<ENCODER, BUF_SIZE>::poll_incoming()
-{
-    int rc;
-    do {
-        pollfd incoming_poll = {.fd     = Connection::fd(),
-                                .events = POLL_IN | POLL_ERR};
-        rc                   = poll(&incoming_poll, 1, -1);
-    } while (rc < 0 && errno == EINTR);
-    utils::die_on(rc < 0, "unable to poll");
-}
 
 template <typename ENCODER, ssize_t BUF_SIZE>
 requires

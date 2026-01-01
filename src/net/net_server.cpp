@@ -48,11 +48,14 @@ FileDescriptor setup_listener(const sockaddr_in& address)
                   "[SERVER][SETUP][LISTENER] unable to start listening on "
                   "addr, shutting down");
 
+    std::cout << "[SERVER][SETUP][LISTENER] Bound and listening" << std::endl;
     return fd;
 }
 
 void run_poll(std::vector<pollfd>& polls)
 {
+    std::cout << "[SERVER][POLL][RUN] polling " << polls.size() << " fds"
+              << std::endl;
     int rc = poll(polls.data(), polls.size(), -1);
     if (rc < 0 && errno == EINTR) {
         return;  // not an error

@@ -1,20 +1,20 @@
 #ifndef INCLUDED_REDISLIB_CLIENT_H
 #define INCLUDED_REDISLIB_CLIENT_H
 
-#include "net_blocking_connection.h"
-#include "net_codec.h"
-#include "net_single_type_encoder.h"
+#include "redis_encoder.h"
+
+#include <net_blocking_connection.h>
+#include <net_codec.h>
+#include <net_single_type_encoder.h>
+#include <net_tagged_encoder.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include <string>
-
 namespace redis {
 
-typedef net::SingleTypeEncoder<net::Codec, std::string> StringEncoder;
-using SyncConnection = net::BlockingConnection<StringEncoder>;
+using SyncConnection = net::BlockingConnection<KeyEncoder>;
 
 class SyncClient {
     SyncConnection m_conn;
@@ -25,12 +25,10 @@ class SyncClient {
     {
     }
 
-    inline StringEncoder::MessageType
-    request(const StringEncoder::MessageType& req);
+    inline KeyEncoder::MessageType request(const KeyEncoder::MessageType& req);
 };
 
-StringEncoder::MessageType
-SyncClient::request(const StringEncoder::MessageType& req)
+KeyEncoder::MessageType SyncClient::request(const KeyEncoder::MessageType& req)
 {
     m_conn.send(req);
     return m_conn.get_response();

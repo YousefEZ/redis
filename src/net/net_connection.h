@@ -1,7 +1,6 @@
 #ifndef INCLUDE_NET_CONNECTION_H
 #define INCLUDE_NET_CONNECTION_H
 
-#include "net_codec.h"
 #include "net_file_descriptor.h"
 
 #include <csignal>
@@ -30,32 +29,56 @@ class Connection {
     bool           m_closed = false;
 
   protected:
-    template <ReadBuffer BUFFER>
+    template <typename BUFFER>
     void read(BUFFER& incoming);
 
   public:
     Connection(FileDescriptor&& fd)
     : m_fd{std::move(fd)}
     {
+        std::cout << "[SERVER][CONNECTION] new connection fd: " << m_fd
+                  << std::endl;
     }
+
+    Connection(Connection&& other)
+    : m_fd{std::move(other.m_fd)}
+    {
+    }
+
+    Connection& operator=(Connection&& other)
+    {
+        if (this != &other) {
+            m_fd = std::move(other.m_fd);
+        }
+        return *this;
+    }
+
+    Connection(const Connection&)            = delete;
+    Connection& operator=(const Connection&) = delete;
+    ~Connection()
+    {
+        std::cout << "[SERVER][CONNECTION] connection fd: " << m_fd
+                  << " destroyed" << std::endl;
+    }
+
     const FileDescriptor& fd() const { return m_fd; }
 
     void close() { m_closed = true; }
     bool is_closed() const { return m_closed; }
 };
 
-template <ReadBuffer BUFFER>
+template <typename BUFFER>
 void Connection::read(BUFFER& incoming)
 {
     std::cout << "[SERVER][CONNECTION][READ] receiving server message "
                  "on connection fd: "
-              << m_fd << std::endl;
-    ssize_t rc = incoming.read_from(m_fd);
+              << (int)fd() << std::endl;
+    ssize_t rc = incoming.read_from(fd());
     if (rc < 0) {
         close();
         std::cout
             << "[SERVER][CONNECTION][READ] connection closed by peer fd: "
-            << m_fd << std::endl;
+            << fd() << std::endl;
         return;
     }
 }

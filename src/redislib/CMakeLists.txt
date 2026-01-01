@@ -1,7 +1,8 @@
 add_library(redis_lib 
     redis_client.cpp
     redis_server.cpp
-)
+    redis_encoder.cpp
+  )
 
 
 target_include_directories(redis_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -25,8 +25,13 @@ requires net::Serde<ENCODER, Buffer, Buffer> class PolledConnection
     , m_signals(signals)
     {
     }
+
     pollfd get_pollfd() const
     {
+        std::cout << "[SERVER][POLL][GET] POLLFD for connection fd: " << fd()
+                  << ", with signals read: " << m_signals.read
+                  << ", write: " << m_signals.write << std::endl;
+
         return pollfd{fd(),
                       static_cast<short>((m_signals.read ? POLLIN : 0) |
                                          (m_signals.write ? POLLOUT : 0) |

@@ -26,12 +26,12 @@ void prepare_poll_events(
     std::vector<pollfd>&                                polls,
     const std::vector<net::PolledConnection<ENCODER> >& connections)
 {
-    polls.reserve(connections.size());
+    polls.reserve(1 + connections.size());
     std::cout << "[SERVER][POLL][PREPARE] preparing poll events for "
               << connections.size() << " connections" << std::endl;
     polls.emplace_back(listen_fd, POLLIN, 0);
 
-    std::ranges::transform(connections | std::views::drop(1),
+    std::ranges::transform(connections,
                            std::back_inserter(polls),
                            &net::PolledConnection<ENCODER>::get_pollfd);
 }
@@ -61,7 +61,7 @@ Server<ENCODER, PROCESSOR>::Server(sockaddr_in&& address, PROCESSOR& processor)
 : m_listen_fd{detail::setup_listener(std::move(address))}
 , m_processor{processor}
 {
-    m_connections.back().fd().as_non_blocking();
+    m_listen_fd.as_non_blocking();
 }
 
 template <typename ENCODER, typename PROCESSOR>
@@ -87,11 +87,11 @@ template <typename ENCODER, typename PROCESSOR>
 void Server<ENCODER, PROCESSOR>::check_connections(
     const std::vector<pollfd>& polls)
 {
-    std::ranges::for_each(std::views::iota(size_t{1}, polls.size()),
-                          [&polls, this](const int idx) {
-                              execute_connection_events(polls[idx],
-                                                        m_connections[idx]);
-                          });
+    std::ranges::for_each(
+        std::views::iota(size_t{1}, polls.size()),
+        [&polls, this](const int idx) {
+            execute_connection_events(polls[idx], m_connections[idx - 1]);
+        });
 }
 
 template <typename ENCODER, typename PROCESSOR>
@@ -125,7 +125,8 @@ void Server<ENCODER, PROCESSOR>::accept_connection(const pollfd& socket_poll)
     std::cout
         << "[SERVER][CONNECTION][ACCEPT] Accepted new connection with fd: "
         << connfd << std::endl;
-    m_connections.emplace_back(std::move(connfd), Signals{.read = true});
+    m_connections.emplace_back(std::move(connfd),
+                               Signals{.read = true, .write = false});
 }
 
 template <typename ENCODER, typename PROCESSOR>

@@ -34,6 +34,8 @@ ssize_t Buffer::read_from(const int fd)
         if (second_read < 0)
             return second_read;
         data_end = start.get() + second_read;
+        std::cout << "[BUFFER] read_from fd=" << fd
+                  << " rv=" << first_read + second_read << std::endl;
         return second_read + first_read;
     }
 

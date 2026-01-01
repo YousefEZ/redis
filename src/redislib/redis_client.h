@@ -1,7 +1,7 @@
 #ifndef INCLUDED_REDISLIB_CLIENT_H
 #define INCLUDED_REDISLIB_CLIENT_H
 
-#include "redis_encoder.h"
+#include "redis_schema.h"
 
 #include <net_blocking_connection.h>
 #include <net_codec.h>
@@ -14,7 +14,8 @@
 
 namespace redis {
 
-using SyncConnection = net::BlockingConnection<KeyEncoder>;
+using SyncConnection =
+    net::BlockingConnection<RequestEncoder, ResponseEncoder>;
 
 class SyncClient {
     SyncConnection m_conn;
@@ -25,10 +26,12 @@ class SyncClient {
     {
     }
 
-    inline KeyEncoder::MessageType request(const KeyEncoder::MessageType& req);
+    inline ResponseEncoder::MessageType
+    request(const RequestEncoder::MessageType& req);
 };
 
-KeyEncoder::MessageType SyncClient::request(const KeyEncoder::MessageType& req)
+ResponseEncoder::MessageType
+SyncClient::request(const RequestEncoder::MessageType& req)
 {
     m_conn.send(req);
     return m_conn.get_response();

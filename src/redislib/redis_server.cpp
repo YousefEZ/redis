@@ -4,11 +4,11 @@
 
 namespace redis {
 
-std::optional<KeyEncoder::MessageType>
-RedisProcessor::process(KeyEncoder::MessageType request)
+std::optional<ResponseEncoder::MessageType>
+RedisProcessor::process(RequestEncoder::MessageType request)
 {
     // Placeholder for processing logic
-    return request;  // Echo back the request for now
+    return "hello world";  // Echo back the request for now
 }
 
 }  // namespace redis

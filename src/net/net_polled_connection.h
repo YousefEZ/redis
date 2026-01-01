@@ -9,10 +9,13 @@
 
 namespace net {
 
-template <typename ENCODER, ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
+template <typename ENCODER,
+          typename DECODER,
+          ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
 requires net::Serde<ENCODER, Buffer, Buffer> class PolledConnection
 : public Connection {
-    typedef ENCODER::MessageType MessageType;
+    using DecodedType = typename DECODER::MessageType;
+    using EncodedType = typename ENCODER::MessageType;
 
     Signals m_signals;
 
@@ -42,13 +45,15 @@ requires net::Serde<ENCODER, Buffer, Buffer> class PolledConnection
     void write();
 
     template <typename PROCESSOR>
-    requires Processor<PROCESSOR, MessageType> void
+    requires Processor<PROCESSOR,
+                       typename DECODER::MessageType,
+                       typename ENCODER::MessageType> void
              process(PROCESSOR& processor);
 };
 
-template <typename ENCODER, ssize_t BUF_SIZE>
+template <typename ENCODER, typename DECODER, ssize_t BUF_SIZE>
 requires net::Serde<ENCODER, Buffer, Buffer> void
-         PolledConnection<ENCODER, BUF_SIZE>::write()
+         PolledConnection<ENCODER, DECODER, BUF_SIZE>::write()
 {
     if (m_outgoing.size() == 0) {
         m_signals.read  = true;
@@ -74,16 +79,18 @@ requires net::Serde<ENCODER, Buffer, Buffer> void
     }
 }
 
-template <typename ENCODER, ssize_t BUF_SIZE>
+template <typename ENCODER, typename DECODER, ssize_t BUF_SIZE>
 requires net::Serde<ENCODER, Buffer, Buffer> template <typename PROCESSOR>
-requires Processor<PROCESSOR, typename ENCODER::MessageType> void
-         PolledConnection<ENCODER, BUF_SIZE>::process(PROCESSOR& processor)
+requires Processor<PROCESSOR,
+                   typename DECODER::MessageType,
+                   typename ENCODER::MessageType> void
+PolledConnection<ENCODER, DECODER, BUF_SIZE>::process(PROCESSOR& processor)
 {
     read(m_incoming);
-    while (std::optional<MessageType> message = ENCODER::consume_message(
+    while (std::optional<DecodedType> message = DECODER::consume_message(
                m_incoming)) {
         // do action on the read message
-        if (std::optional<MessageType> response = processor.process(
+        if (std::optional<EncodedType> response = processor.process(
                 std::move(*message))) {
             ENCODER::write(std::move(*response), m_outgoing);
             m_signals.write = true;

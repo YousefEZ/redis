@@ -49,11 +49,14 @@ class SocketWriteBuffer {
     }
 };
 
-template <typename ENCODER, ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
+template <typename ENCODER,
+          typename DECODER,
+          ssize_t BUF_SIZE = MAX_BUFFER_SIZE>
 requires
     net::Serde<ENCODER, SocketWriteBuffer, Buffer> class BlockingConnection
 : public Connection {
-    typedef ENCODER::MessageType MessageType;
+    using RequestType  = typename ENCODER::MessageType;
+    using ResponseType = typename DECODER::MessageType;
 
     Buffer            m_incoming{BUF_SIZE};
     SocketWriteBuffer m_outgoing;
@@ -74,24 +77,25 @@ requires
     template <typename MESSAGE>
     void send(MESSAGE&& message);
 
-    ENCODER::MessageType get_response();
+    ResponseType get_response();
 };
 
-template <typename ENCODER, ssize_t BUF_SIZE>
+template <typename ENCODER, typename DECODER, ssize_t BUF_SIZE>
 requires
     net::Serde<ENCODER, SocketWriteBuffer, Buffer> template <typename MESSAGE>
-    void BlockingConnection<ENCODER, BUF_SIZE>::send(MESSAGE&& message)
+    void
+    BlockingConnection<ENCODER, DECODER, BUF_SIZE>::send(MESSAGE&& message)
 {
     ENCODER::write(std::forward<MESSAGE>(message), m_outgoing);
 }
 
-template <typename ENCODER, ssize_t BUF_SIZE>
-requires net::Serde<ENCODER, SocketWriteBuffer, Buffer> ENCODER::MessageType
-BlockingConnection<ENCODER, BUF_SIZE>::get_response()
+template <typename ENCODER, typename DECODER, ssize_t BUF_SIZE>
+requires net::Serde<ENCODER, SocketWriteBuffer, Buffer> DECODER::MessageType
+BlockingConnection<ENCODER, DECODER, BUF_SIZE>::get_response()
 {
     while (true) {
         read(m_incoming);
-        if (std::optional<MessageType> message = ENCODER::consume_message(
+        if (std::optional<ResponseType> message = DECODER::consume_message(
                 m_incoming)) {
             return *message;
         }

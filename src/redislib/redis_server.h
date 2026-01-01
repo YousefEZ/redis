@@ -1,7 +1,7 @@
 #ifndef INCLUDED_REDIS_SERVER_H
 #define INCLUDED_REDIS_SERVER_H
 
-#include "redis_encoder.h"
+#include "redis_schema.h"
 
 #include <net_codec.h>
 #include <net_polled_connection.h>
@@ -15,11 +15,12 @@ namespace redis {
 
 class RedisProcessor {
   public:
-    std::optional<KeyEncoder::MessageType>
-    process(KeyEncoder::MessageType request);
+    std::optional<ResponseEncoder::MessageType>
+    process(RequestEncoder::MessageType request);
 };
 
-using RedisServer = net::Server<KeyEncoder, RedisProcessor>;
+using RedisServer =
+    net::Server<RequestEncoder, ResponseEncoder, RedisProcessor>;
 
 }  // namespace redis
 

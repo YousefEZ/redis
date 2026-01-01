@@ -15,9 +15,12 @@
 
 class StringConnectionTest : public testing::Test {
     std::array<int, 2> m_fds;
-    using TestEncoder      = net::SingleTypeEncoder<net::Codec, std::string>;
-    using ServerConnection = net::PolledConnection<TestEncoder>;
-    using ClientConnection = net::BlockingConnection<TestEncoder>;
+    using RequestEncoder  = net::SingleTypeEncoder<net::Codec, std::string>;
+    using ResponseEncoder = net::SingleTypeEncoder<net::Codec, std::string>;
+    using ServerConnection =
+        net::PolledConnection<RequestEncoder, ResponseEncoder>;
+    using ClientConnection =
+        net::BlockingConnection<RequestEncoder, ResponseEncoder>;
 
     ServerConnection m_server;
     ClientConnection m_client;

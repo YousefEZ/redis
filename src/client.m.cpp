@@ -57,18 +57,12 @@ void run_client()
         std::getline(std::cin, message);
 
         auto response = client.request(std::move(message));
-        /**
         std::visit(
             [](auto&& arg) {
                 std::cout << "[MAIN][CLIENT] received response: " << arg
                           << std::endl;
             },
             response);
-
-        **/
-
-        std::cout << "[MAIN][CLIENT] received response: " << response
-                  << std::endl;
     }
 }
 

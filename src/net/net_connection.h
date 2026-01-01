@@ -55,11 +55,7 @@ class Connection {
 
     Connection(const Connection&)            = delete;
     Connection& operator=(const Connection&) = delete;
-    ~Connection()
-    {
-        std::cout << "[SERVER][CONNECTION] connection fd: " << m_fd
-                  << " destroyed" << std::endl;
-    }
+    ~Connection()                            = default;
 
     const FileDescriptor& fd() const { return m_fd; }
 
@@ -72,7 +68,7 @@ void Connection::read(BUFFER& incoming)
 {
     std::cout << "[SERVER][CONNECTION][READ] receiving server message "
                  "on connection fd: "
-              << (int)fd() << std::endl;
+              << fd() << std::endl;
     ssize_t rc = incoming.read_from(fd());
     if (rc < 0) {
         close();

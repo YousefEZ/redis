@@ -98,7 +98,6 @@ struct TaggedEncoder {
     template <WriteBuffer BUFFER>
     static void write(const MessageType& message, BUFFER& buffer)
     {
-        std::cout << "[TaggedEncoder][write] encoding message" << std::endl;
         std::visit(
             [&buffer](auto&& msg) {
                 TaggedEncoder<CODEC, MESSAGES>::write_impl(

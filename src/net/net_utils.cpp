@@ -20,8 +20,6 @@ int32_t read_full(int fd, char* buf, size_t n)
 
 int32_t write_full(int fd, char* buf, size_t n)
 {
-    std::cout << "utils::write_full(fd=" << fd << ", n=" << n << ")"
-              << std::endl;
     return detail::action_full(fd, buf, n, write);
 }
 

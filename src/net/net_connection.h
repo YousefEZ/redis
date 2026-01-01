@@ -13,10 +13,10 @@
 #define MAX_BUFFER_SIZE 4096
 namespace net {
 
-template <typename PROCESSOR, typename T>
-concept Processor = requires(PROCESSOR & processor, T message)
+template <typename PROCESSOR, typename INCOMING, typename OUTGOING>
+concept Processor = requires(PROCESSOR & processor, INCOMING message)
 {
-    {processor.process(message)}->std::same_as<std::optional<T> >;
+    {processor.process(message)}->std::same_as<std::optional<OUTGOING> >;
 };
 
 struct Signals {
@@ -66,11 +66,18 @@ class Connection {
 template <typename BUFFER>
 void Connection::read(BUFFER& incoming)
 {
+    if (is_closed()) {
+        std::cout
+            << "[SERVER][CONNECTION][READ] connection already closed fd: "
+            << fd() << std::endl;
+        return;
+    }
     std::cout << "[SERVER][CONNECTION][READ] receiving server message "
                  "on connection fd: "
               << fd() << std::endl;
+
     ssize_t rc = incoming.read_from(fd());
-    if (rc < 0) {
+    if (rc <= 0) {
         close();
         std::cout
             << "[SERVER][CONNECTION][READ] connection closed by peer fd: "

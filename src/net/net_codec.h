@@ -1,12 +1,19 @@
 #ifndef INCLUDED_NET_CODEC_H
 #define INCLUDED_NET_CODEC_H
 
+#include <boost/pfr.hpp>
+
+#include <boost/pfr/core.hpp>
+#include <boost/pfr/traits.hpp>
+#include <boost/pfr/tuple_size.hpp>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace net {
@@ -219,6 +226,116 @@ struct Codec<std::vector<T> > {
         return entities;
     }
 };
+
+namespace detail {
+template <typename T>
+struct ValidMessageInBuffer {
+  private:
+    template <ReadBuffer BUFFER, std::size_t idx>
+    static bool get_total_fields_size(const BUFFER& buffer,
+                                      uint32_t&     total_size)
+    {
+        using Field = boost::pfr::tuple_element_t<idx, T>;
+
+        uint32_t current_size;
+        if (total_size > buffer.size()) [[unlikely]] {
+            return false;
+        }
+
+        if constexpr (Field::variable_size) {
+            buffer.cpy(&current_size, sizeof(uint32_t), total_size);
+            total_size += sizeof(uint32_t) + current_size;
+        }
+        else {
+            total_size += sizeof(Field);
+        }
+
+        if constexpr (boost::pfr::tuple_size_v<T> - 1 == idx) {
+            return total_size <= buffer.size();
+        }
+        return true;
+    }
+
+    template <ReadBuffer BUFFER, std::size_t... I>
+    static bool valid_impl(const BUFFER& buffer, std::index_sequence<I...>)
+    {
+        uint32_t total_size  = 0;
+        bool     valid_sizes = (get_total_fields_size<I>(total_size) && ...);
+        return valid_sizes && total_size <= buffer.size();
+    }
+
+  public:
+    template <ReadBuffer BUFFER>
+    static bool valid(const BUFFER& buffer)
+    {
+        return valid_impl(
+            buffer,
+            std::make_index_sequence<boost::pfr::tuple_size_v<T> >{});
+    }
+};
+
+}  // namespace detail
+
+/** Aggregate classes are basically a composition of other types, so we
+ * can decompose them to get the fields and then serde each type, recursively
+ * if required.
+ */
+template <typename T>
+requires std::is_aggregate_v<T> struct Codec<T> {
+    static constexpr bool variable_size = true;
+
+    template <typename U>
+    static uint32_t calculate_total_size(const U&)
+        requires(!Codec<U>::variable_size)
+    {
+        return sizeof(U);  // for each entity
+    }
+
+    template <typename U>
+    static uint32_t calculate_total_size(const U& msg)
+        requires(Codec<U>::variable_size)
+    {
+        return sizeof(uint32_t) + Codec<U>::raw_size(msg);
+    }
+
+    template <ReadBuffer BUFFER>
+    static bool valid_message_in_buffer(const BUFFER& buffer)
+    {
+        return detail::ValidMessageInBuffer<T>::valid(buffer);
+    }
+
+    template <WriteBuffer BUFFER>
+    static void serialize(const T& message, BUFFER& buffer)
+    {
+        uint32_t total_size = 0;
+        boost::pfr::for_each_field(message, [&total_size](const auto& field) {
+            total_size += calculate_total_size(field);
+        });
+        if (total_size >= buffer.capacity() - buffer.size()) [[unlikely]] {
+            throw std::runtime_error("no more space in the buffer to "
+                                     "serialize message of length: " +
+                                     std::to_string(total_size));
+        }
+
+        boost::pfr::for_each_field(message, [&buffer](const auto& field) {
+            Codec<std::decay_t<decltype(field)> >::serialize(field, buffer);
+        });
+    }
+
+    template <ReadBuffer BUFFER>
+    static std::optional<T> deserialize(BUFFER& buffer)
+    {
+        if (!valid_message_in_buffer(buffer)) [[unlikely]] {
+            return {};
+        }
+
+        return [&buffer]<std::size_t... I>(std::index_sequence<I...>) -> T {
+            return {Codec<std::decay_t<boost::pfr::tuple_element_t<I, T> > >::
+                        deserialize(buffer)...};
+        }(std::make_index_sequence<boost::pfr::tuple_size_v<T> >{});
+    }
+};
+
 }  // namespace net
 
 #endif

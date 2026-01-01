@@ -33,6 +33,6 @@ class Buffer {
     ssize_t capacity() const;
 };
 
-}
+} // namespace net
 
 #endif

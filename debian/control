@@ -6,8 +6,10 @@ Rules-Requires-Root: no
 Build-Depends:
  debhelper-compat (= 13),
  cmake,
+ libboost-dev,
+ g++
 Standards-Version: 4.6.2
-Homepage: <insert the upstream URL, if relevant>
+Homepage: https://github.com/YousefEZ/redis
 #Vcs-Browser: https://salsa.debian.org/debian/redis
 #Vcs-Git: https://salsa.debian.org/debian/redis.git
 

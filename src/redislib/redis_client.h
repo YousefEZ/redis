@@ -26,16 +26,21 @@ class SyncClient {
     {
     }
 
+    inline ResponseEncoder::MessageType get(std::string key)
+    {
+        m_conn.send(GetRequest{key});
+        return m_conn.get_response();
+    }
+
+    inline ResponseEncoder::MessageType set(std::string key, std::string value)
+    {
+        m_conn.send(SetRequest<std::string>{key, value});
+        return m_conn.get_response();
+    }
+
     inline ResponseEncoder::MessageType
     request(const RequestEncoder::MessageType& req);
 };
-
-ResponseEncoder::MessageType
-SyncClient::request(const RequestEncoder::MessageType& req)
-{
-    m_conn.send(req);
-    return m_conn.get_response();
-}
 
 }  // namespace redis
 

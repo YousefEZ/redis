@@ -56,20 +56,51 @@ void run_client()
         std::cout << "Enter the message to send to the server:";
 
         std::string message;
-        std::getline(std::cin, message);
+        std::string command;
+        std::cin >> command;
 
-        auto response = client.request(redis::GetRequest{std::move(message)});
-        std::visit(
-            [](auto&& arg) {
-                if constexpr (std::is_same_v<
-                                  std::decay_t<decltype(arg)>,
-                                  redis::GetResponse<std::string> >) {
+        std::cout << "[MAIN][CLIENT] parsing command: '" << command << "'"
+                  << std::endl;
+        if (command == "get") {
+            std::string key;
+            std::cin >> key;
+            std::cout << "[MAIN][CLIENT] GET KEY: '" << key << "'"
+                      << std::endl;
+            auto response = client.get(key);
+            std::visit(
+                [](auto&& arg) {
                     std::cout
-                        << "[MAIN][CLIENT] received response: " << arg.value
+                        << "[MAIN][CLIENT] ARG TYPE: " << typeid(arg).name()
                         << std::endl;
-                }
-            },
-            response);
+                    if constexpr (std::is_same_v<
+                                      std::decay_t<decltype(arg)>,
+                                      redis::GetResponse<std::string> >) {
+                        std::cout << "[MAIN][CLIENT] received GET response: "
+                                  << arg.value << std::endl;
+                    }
+                },
+                response);
+        }
+        else if (command == "set") {
+            std::string key;
+            std::cin >> key;
+            std::cout << "[MAIN][CLIENT] SET KEY: '" << key << "'"
+                      << std::endl;
+            std::string value;
+            std::cin >> value;
+            std::cout << "[MAIN][CLIENT] TO VALUE: '" << value << "'"
+                      << std::endl;
+            auto response = client.set(key, value);
+            std::visit(
+                [](auto&& arg) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
+                                                 redis::SetResponse>) {
+                        std::cout << "[MAIN][CLIENT] received SET response: "
+                                  << arg.success << std::endl;
+                    }
+                },
+                response);
+        }
     }
 }
 

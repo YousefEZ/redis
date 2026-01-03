@@ -154,6 +154,8 @@ struct Codec<std::string> {
  */
 template <typename T>
 struct Codec<std::vector<T> > {
+    static constexpr bool variable_size = true;
+
     static uint32_t calculate_total_size(const std::vector<T>& msgs)
         requires(!Codec<T>::variable_size)
     {
@@ -242,7 +244,7 @@ struct ValidMessageInBuffer {
             return false;
         }
 
-        if constexpr (Field::variable_size) {
+        if constexpr (Codec<Field>::variable_size) {
             buffer.cpy(&current_size, sizeof(uint32_t), total_size);
             total_size += sizeof(uint32_t) + current_size;
         }
@@ -259,8 +261,9 @@ struct ValidMessageInBuffer {
     template <ReadBuffer BUFFER, std::size_t... I>
     static bool valid_impl(const BUFFER& buffer, std::index_sequence<I...>)
     {
-        uint32_t total_size  = 0;
-        bool     valid_sizes = (get_total_fields_size<I>(total_size) && ...);
+        uint32_t total_size = 0;
+        bool     valid_sizes =
+            (get_total_fields_size<BUFFER, I>(buffer, total_size) && ...);
         return valid_sizes && total_size <= buffer.size();
     }
 
@@ -330,7 +333,7 @@ requires std::is_aggregate_v<T> struct Codec<T> {
         }
 
         return [&buffer]<std::size_t... I>(std::index_sequence<I...>) -> T {
-            return {Codec<std::decay_t<boost::pfr::tuple_element_t<I, T> > >::
+            return {*Codec<std::decay_t<boost::pfr::tuple_element_t<I, T> > >::
                         deserialize(buffer)...};
         }(std::make_index_sequence<boost::pfr::tuple_size_v<T> >{});
     }

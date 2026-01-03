@@ -19,6 +19,8 @@ struct GetResponse {
     T value;
 };
 
+struct MissingKeyResponse {};
+
 template <typename T>
 struct SetRequest {
     std::string key;
@@ -29,15 +31,18 @@ struct SetResponse {
     bool success;
 };
 
-using TypeValues = meta::TypeList<std::string, int, bool>;
+using TypeValues = meta::TypeList<std::string>;
 
-using MyRequests =
-    meta::Append<TypeValues::Apply<SetRequest>, GetRequest>::Value;
-using MyResponses =
-    meta::Append<TypeValues::Apply<GetResponse>, SetResponse>::Value;
+using SetRequests    = TypeValues::Map<SetRequest>;
+using GetResponses   = TypeValues::Map<GetResponse>;
+using ErrorResponses = meta::TypeList<MissingKeyResponse>;
 
-using Requests  = meta::As<MyRequests>::Messages;
-using Responses = meta::As<MyResponses>::Messages;
+using RequestTypeList = SetRequests::WithBackAppend<GetRequest>;
+using ResponseTypeList =
+    GetResponses::WithBackAppend<SetResponse>::Concatenate<ErrorResponses>;
+
+using Requests  = RequestTypeList::To<net::Messages>;
+using Responses = ResponseTypeList::To<net::Messages>;
 
 using RequestEncoder  = net::TaggedEncoder<net::Codec, Requests>;
 using ResponseEncoder = net::TaggedEncoder<net::Codec, Responses>;

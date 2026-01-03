@@ -1,4 +1,5 @@
 #include <redis_client.h>
+#include <redis_schema.h>
 #include <redis_server.h>
 
 #include <net_connection.h>
@@ -10,6 +11,7 @@
 #include <netinet/ip.h>
 #include <string>
 #include <sys/socket.h>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -56,11 +58,16 @@ void run_client()
         std::string message;
         std::getline(std::cin, message);
 
-        auto response = client.request(std::move(message));
+        auto response = client.request(redis::GetRequest{std::move(message)});
         std::visit(
             [](auto&& arg) {
-                std::cout << "[MAIN][CLIENT] received response: " << arg
-                          << std::endl;
+                if constexpr (std::is_same_v<
+                                  std::decay_t<decltype(arg)>,
+                                  redis::GetResponse<std::string> >) {
+                    std::cout
+                        << "[MAIN][CLIENT] received response: " << arg.value
+                        << std::endl;
+                }
             },
             response);
     }

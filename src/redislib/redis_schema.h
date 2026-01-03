@@ -1,28 +1,46 @@
 #ifndef INCLUDED_REDIS_SCHEMA_H
 #define INCLUDED_REDIS_SCHEMA_H
 
+#include "redis_meta.h"
+
 #include <net_codec.h>
 #include <net_tagged_encoder.h>
+
 #include <string>
+
+namespace redis {
 
 struct GetRequest {
     std::string key;
 };
 
-struct GetResponse {};
+template <typename T>
+struct GetResponse {
+    T value;
+};
 
-struct SetRequest {};
+template <typename T>
+struct SetRequest {
+    std::string key;
+    T           value;
+};
 
-struct SetResponse {};
+struct SetResponse {
+    bool success;
+};
 
-using MessageTypes = net::Messages<std::string, uint32_t>;
+using TypeValues = meta::TypeList<std::string, int, bool>;
 
-using Requests =
-    net::Messages<std::string>;  // net::Messages<GetRequest, SetRequest>;
-using Responses = net::Messages<std::string>;  // net::Messages<GetResponse,
-                                               // SetResponse, std::string>;
+using MyRequests =
+    meta::Append<TypeValues::Apply<SetRequest>, GetRequest>::Value;
+using MyResponses =
+    meta::Append<TypeValues::Apply<GetResponse>, SetResponse>::Value;
+
+using Requests  = meta::As<MyRequests>::Messages;
+using Responses = meta::As<MyResponses>::Messages;
 
 using RequestEncoder  = net::TaggedEncoder<net::Codec, Requests>;
 using ResponseEncoder = net::TaggedEncoder<net::Codec, Responses>;
+}  // namespace redis
 
 #endif

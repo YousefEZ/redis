@@ -2,6 +2,7 @@ add_library(redis_lib
     redis_client.cpp
     redis_server.cpp
     redis_schema.cpp
+    redis_meta.cpp 
   )
 
 

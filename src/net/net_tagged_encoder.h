@@ -80,9 +80,10 @@ struct TaggedEncoder {
     using MessageType = MESSAGES::MessageVariant;
 
   private:
+    // using a lambda because Messages Requires a templated operator()
     static constexpr auto deserialize =
-        []<typename T, ReadBuffer BUFFER>(BUFFER& buffer)
-        -> std::optional<typename MESSAGES::MessageVariant> {
+        []<typename T, ReadBuffer BUFFER>(
+            BUFFER& buffer) -> std::optional<MessageType> {
         return CODEC<T>::deserialize(buffer);
     };
 
@@ -90,6 +91,8 @@ struct TaggedEncoder {
     static void write_impl(T&& message, BUFFER& buffer)
     {
         Tag id = MESSAGES::template id<std::decay_t<T> >();
+        std::cout << "Serializing message with id " << id << " for type "
+                  << typeid(T).name() << std::endl;
         buffer.append((char*)&id, sizeof(id));
         CODEC<std::decay_t<T> >::serialize(std::forward<T>(message), buffer);
     }
@@ -108,14 +111,14 @@ struct TaggedEncoder {
     }
 
     template <ReadBuffer BUFFER>
-    static std::optional<typename MESSAGES::MessageVariant>
-    consume_message(BUFFER& buffer)
+    static std::optional<MessageType> consume_message(BUFFER& buffer)
     {
         if (buffer.size() <= sizeof(Tag)) {
             return {};
         }
         Tag tag;
         buffer.cpy(&tag, sizeof(Tag));
+        std::cout << "Deserializing message with id " << tag << std::endl;
         buffer.consume(sizeof(Tag));
         return MESSAGES::dispatch(tag, deserialize, buffer);
     }

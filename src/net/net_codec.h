@@ -88,6 +88,7 @@ requires std::is_scalar_v<T> struct Codec<T> {
 
         T contents;
         buffer.cpy(&contents, sizeof(T));
+        buffer.consume(sizeof(T));
         return contents;
     }
 };

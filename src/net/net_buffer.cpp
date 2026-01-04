@@ -1,12 +1,58 @@
 #include "net_buffer.h"
 #include "net_utils.h"
 
+#include <cctype>
+#include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <unistd.h>
 
 namespace net {
+
+namespace {
+void hexdump_pretty(const void* data, std::size_t size)
+{
+    const unsigned char* base = static_cast<const unsigned char*>(data);
+
+    constexpr std::size_t BYTES_PER_LINE = 16;
+
+    for (std::size_t offset = 0; offset < size; offset += BYTES_PER_LINE) {
+        const unsigned char* addr = base + offset;
+
+        // address and offset
+        std::printf("%p (+%08zx)  ", (const void*)addr, offset);
+
+        // hex bytes
+        for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
+            if (offset + i < size)
+                std::printf("%02x ", addr[i]);
+            else
+                std::printf("   ");
+
+            if (i == 7)
+                std::printf(" ");
+        }
+
+        std::printf(" |");
+
+        // ASCII
+        for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
+            if (offset + i < size) {
+                unsigned char c = addr[i];
+                std::printf("%c", std::isprint(c) ? c : '.');
+            }
+            else {
+                std::printf(" ");
+            }
+        }
+
+        std::printf("|\n");
+    }
+}
+
+}  // namespace
 
 Buffer::Buffer(ssize_t size)
 : start(std::make_unique_for_overwrite<char[]>(size))
@@ -25,8 +71,12 @@ ssize_t Buffer::read_from(const int fd)
         if (first_read < 0)
             return first_read;
         data_end = data_end + first_read;
-        if (first_read < max_read)
+        if (first_read < max_read) {
+            std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << first_read
+                      << std::endl;
+            hexdump_pretty(data_end - first_read, first_read);
             return first_read;
+        }
         // wrap to data_start
         ssize_t second_read = read(fd,
                                    start.get(),
@@ -97,7 +147,8 @@ void Buffer::cpy(void* dst, ssize_t n, ssize_t offset) const
                n - last_part_size);
         return;
     }
-
+    std::cout << "[BUFFER] cpy n=" << n << " offset=" << offset << std::endl;
+    hexdump_pretty(offset_start_pos, n);
     memcpy(dst, offset_start_pos, n);
 }
 

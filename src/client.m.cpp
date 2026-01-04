@@ -1,0 +1,115 @@
+#include <redis_client.h>
+#include <redis_schema.h>
+#include <redis_server.h>
+
+#include <net_connection.h>
+#include <net_server.h>
+#include <net_utils.h>
+
+#include <arpa/inet.h>
+#include <iostream>
+#include <netinet/ip.h>
+#include <string>
+#include <sys/socket.h>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+auto ip_address_value(const std::string& address)
+{
+    in_addr addr;
+    inet_pton(AF_INET, address.c_str(), &addr);
+    return addr.s_addr;
+}
+
+redis::SyncConnection connect(sockaddr_in address)
+{
+    net::FileDescriptor fd{socket(AF_INET, SOCK_STREAM, 0)};
+
+    net::utils::die_on(fd < 0,
+                       "[CLIENT][RUN] unable to create socket, shutting down");
+
+    int rc = connect(fd, (const sockaddr*)&address, sizeof(address));
+    net::utils::die_on(
+        rc,
+        "[CLIENT][RUN] unable to connect to server, shutting down");
+    return {std::move(fd)};
+}
+
+void run_client()
+{
+    std::string address, raw_port;
+
+    std::cout << "[MAIN][CLIENT] Enter the server address to connect to: ";
+    std::getline(std::cin, address);
+
+    std::cout << "[MAIN][CLIENT] Enter the server port to connect to: ";
+    std::getline(std::cin, raw_port);
+
+    int         port     = std::stoi(raw_port);
+    sockaddr_in addr     = {};
+    addr.sin_family      = AF_INET;
+    addr.sin_port        = htons(port);
+    addr.sin_addr.s_addr = ip_address_value(address);
+    redis::SyncClient client{connect(std::move(addr))};
+    while (true) {
+        std::cout << "Enter the message to send to the server:";
+
+        std::string message;
+        std::string command;
+        std::cin >> command;
+
+        std::cout << "[MAIN][CLIENT] parsing command: '" << command << "'"
+                  << std::endl;
+        if (command == "get") {
+            std::string key;
+            std::cin >> key;
+            std::cout << "[MAIN][CLIENT] GET KEY: '" << key << "'"
+                      << std::endl;
+            auto response = client.get(key);
+            std::visit(
+                [](auto&& arg) {
+                    std::cout
+                        << "[MAIN][CLIENT] ARG TYPE: " << typeid(arg).name()
+                        << std::endl;
+                    if constexpr (std::is_same_v<
+                                      std::decay_t<decltype(arg)>,
+                                      redis::GetResponse<std::string> >) {
+                        std::cout << "[MAIN][CLIENT] received GET response: "
+                                  << arg.value << std::endl;
+                    }
+                },
+                response);
+        }
+        else if (command == "set") {
+            std::string key;
+            std::cin >> key;
+            std::cout << "[MAIN][CLIENT] SET KEY: '" << key << "'"
+                      << std::endl;
+            std::string value;
+            std::cin >> value;
+            std::cout << "[MAIN][CLIENT] TO VALUE: '" << value << "'"
+                      << std::endl;
+            auto response = client.set(key, value);
+            std::visit(
+                [](auto&& arg) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
+                                                 redis::SetResponse>) {
+                        std::cout << "[MAIN][CLIENT] received SET response: "
+                                  << arg.success << std::endl;
+                    }
+                },
+                response);
+        }
+    }
+}
+
+int main()
+{
+    std::cout << "[MAIN] Welcome to redis." << std::endl;
+
+    std::cout << "[MAIN] booting a test client" << std::endl;
+    run_client();
+
+    return 0;
+}

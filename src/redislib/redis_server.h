@@ -1,6 +1,7 @@
 #ifndef INCLUDED_REDIS_SERVER_H
 #define INCLUDED_REDIS_SERVER_H
 
+#include "redis_hashtable.h"
 #include "redis_meta.h"
 #include "redis_schema.h"
 
@@ -11,7 +12,6 @@
 #include <net_tagged_encoder.h>
 
 #include <optional>
-#include <unordered_map>
 #include <variant>
 
 namespace redis {
@@ -20,7 +20,7 @@ class RedisProcessor {
   private:
     using Variant = TypeValues::To<std::variant>;
 
-    std::unordered_map<std::string, Variant> m_kv_store;
+    HashMap<std::string, Variant> m_kv_store;
 
     std::optional<Variant> get(std::string key) const;
 

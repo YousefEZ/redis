@@ -72,8 +72,13 @@ bool operator==(const Node<K, V>& a, const Node<K, V>& b)
 }
 
 template <Key K, typename V>
+class Rehasher;
+
+template <Key K, typename V>
 class HashMapImpl {
     using HashNode = Node<K, V>;
+
+    friend Rehasher<K, V>;
 
     // power of 2 array size 2^n - 1, used to cover hcode
     std::size_t m_mask = MAX_SIZE - 1;
@@ -97,27 +102,35 @@ class HashMapImpl {
                "size must be power of 2");
     }
 
-    V& insert_or_assign(HashNode node)
+    V& insert_or_assign(std::unique_ptr<HashNode> node)
     {
         std::unique_ptr<HashNode>& head_node = get_slot_linked_list(
             node.hashcode());
         if (head_node == nullptr) {
-            head_node = std::make_unique<HashNode>(std::move(node));
+            head_node = node;
+            return;
+        }
+        else if (*head_node == *node) {
+            node->m_next = std::move(head_node->m_next);
+            head_node    = std::move(node);
             return;
         }
 
-        HashNode* current = head_node.get();
+        HashNode* previous = head_node.get();
+        HashNode* current  = head_node->m_next.get();
         while (current->m_next) {
-            if (current == node) {
+            if (*current == *node) {
                 // the key already exists, so we just need to assign the value
-                current->value() = std::move(node.value());
+                node->m_next     = std::move(current->m_next);
+                previous->m_next = std::move(node);
                 return current->value();
             }
-            current = current->m_next.get();
+            previous = current;
+            current  = current->m_next.get();
         }
 
         // current is now the tail of LL
-        current->m_next = std::make_unique<HashNode>(std::move(node));
+        current->m_next = std::move(node);
 
         ++m_size;
         return current->m_next.value();
@@ -125,7 +138,8 @@ class HashMapImpl {
 
     V& insert_or_assign(K key, V value)
     {
-        return insert({std::move(key), std::move(value)});
+        return insert(
+            std::make_unique<HashNode>(std::move(key), std::move(value)));
     }
 
     std::optional<std::reference_wrapper<HashNode> > get(uint64_t hcode)
@@ -146,7 +160,7 @@ class HashMapImpl {
         return std::nullopt;
     }
 
-    std::unique_ptr<HashNode> detach(K key)
+    std::unique_ptr<HashNode> detach(const K& key)
     {
         HashCode                   hcode     = std::hash<K>{}(key);
         std::size_t                idx       = hcode & m_mask;
@@ -180,10 +194,44 @@ class HashMapImpl {
         return nullptr;
     }
 };
+template <Key K, typename V>
+class Rehasher {
+    using HashNode = HashMapImpl<K, V>::HashNode;
+    HashMapImpl<K, V>& m_black_map;
+    HashMapImpl<K, V>& m_red_map;
+
+    std::size_t rehash_block(std::size_t idx)
+    {
+        std::unique_ptr<HashNode>& block = *(m_red_map.m_table)[idx];
+        std::size_t                count = 0;
+        for (std::size_t count = 0; block != nullptr;
+             ++count, --m_red_map.m_size) {
+            std::unique_ptr<HashNode> next = std::move(block->m_next);
+            m_black_map.insert_or_assign(std::move(block));
+
+            block = std::move(next);
+        }
+        return count;
+    }
+
+  public:
+    template <std::size_t REHASH_SIZE>
+    void rehash()
+    {
+        std::size_t count = 0;
+        for (std::size_t idx = 0;
+             count < REHASH_SIZE && idx <= m_red_map.m_mask;
+             idx++) {
+            count += rehash_block(idx);
+        }
+    }
+};
 
 template <Key K, typename V, std::size_t REHASH_SIZE = 128>
 class HashMap {
     using HashNode = Node<K, V>;
+
+    friend Rehasher<K, V>;
 
     HashMapImpl<K, V>                 m_black_map;
     std::optional<HashMapImpl<K, V> > m_red_map            = std::nullopt;
@@ -198,7 +246,7 @@ class HashMap {
             return;
         }
 
-        // TODO: implement rehashing
+        Rehasher{m_black_map, *m_red_map}.template rehash<REHASH_SIZE>();
     }
 
   public:
@@ -227,22 +275,24 @@ class HashMap {
             }
             return *(m_black_map.get(hcode)).value();
         }
+        trigger_rehashing();
 
         return std::nullopt;
     }
 
     std::optional<std::reference_wrapper<V> > insert_or_assign(K key, V value)
     {
+        trigger_rehashing();
         auto mapped_value = m_black_map.insert_or_assign(std::move(key),
                                                          std::move(value));
         m_red_map.detach(key);
         return mapped_value;
     }
 
-    void remove(K key)
+    void remove(const K& key)
     {
-        if (!m_black_map.remove(key)) {
-            m_red_map.remove(std::move(key));
+        if (!m_black_map.detach(key) && m_red_map) {
+            m_red_map->detach(key);
         }
     }
 };

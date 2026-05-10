@@ -8,14 +8,10 @@
 
 namespace redis {
 
-std::optional<RedisProcessor::Variant>
-RedisProcessor::get(std::string key) const
+std::optional<std::reference_wrapper<const RedisProcessor::Variant> >
+RedisProcessor::get(const std::string& key) const
 {
-    auto it = m_kv_store.find(key);
-    if (it == m_kv_store.end()) {
-        return {};
-    }
-    return it->second;
+    return m_kv_store.get(key);
 }
 
 ResponseTypeList::To<std::variant>
@@ -35,7 +31,7 @@ RedisProcessor::operator()(GetRequest request)
             return GetResponse<std::decay_t<decltype(arg)> >{
                 std::forward<decltype(arg)>(arg)};
         },
-        std::move(*response));
+        (*response).get());
 }
 
 std::optional<ResponseEncoder::MessageType>

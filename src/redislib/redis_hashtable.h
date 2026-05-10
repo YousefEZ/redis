@@ -310,7 +310,7 @@ class HashMap {
             // optional->get to get underlying of reference_wrapper
             m_black_map.insert_or_assign(std::move(node->get()));
 
-            if (m_red_map.size() == 0) [[unlikely]] {
+            if (m_red_map->size() == 0) [[unlikely]] {
                 m_red_map.reset();
             }
             return *(m_black_map.get(hcode)).value();

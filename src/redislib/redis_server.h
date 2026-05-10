@@ -20,19 +20,25 @@ class RedisProcessor {
   private:
     using Variant = TypeValues::To<std::variant>;
 
-    HashMap<std::string, Variant> m_kv_store;
+    static constexpr std::size_t initial_size = 1024;
 
-    std::optional<Variant> get(std::string key) const;
+    HashMap<std::string, Variant> m_kv_store = HashMap<std::string, Variant>{
+        initial_size};
+
+    std::optional<std::reference_wrapper<const Variant> >
+    get(const std::string& key) const;
 
     template <typename T>
     bool set(std::string key, T value)
     {
         std::cout << "Setting key: " << key << " with value: " << value
                   << std::endl;
-        return m_kv_store.insert_or_assign(key, value).second;
+        return m_kv_store.insert_or_assign(key, value).has_value();
     }
 
   public:
+    RedisProcessor() = default;
+
     std::optional<ResponseEncoder::MessageType>
     process(RequestEncoder::MessageType request);
 

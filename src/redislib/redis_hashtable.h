@@ -22,18 +22,26 @@ concept Key = requires(K key)
 };
 
 template <Key K, typename V>
+class HashMapImpl;
+
+template <Key K, typename V>
+class Rehasher;
+
+template <Key K, typename V>
 class Node {
     K                     m_key;
     V                     m_value;
     std::unique_ptr<Node> m_next;
     HashCode              m_hashcode;
+    friend HashMapImpl<K, V>;
+    friend Rehasher<K, V>;
 
   public:
     Node(K key, V value)
     : m_key{std::move(key)}
     , m_value{std::move(value)}
     , m_next{nullptr}
-    , m_hashcode{std::hash(m_key)}
+    , m_hashcode{std::hash<K>{}(key)}
     {
     }
 
@@ -57,22 +65,20 @@ class Node {
     }
 
     const K& key() const { return m_key; }
-    V&       value() const { return m_value; }
+    V&       value() { return m_value; }
+    const V& value() const { return m_value; }
     HashCode hashcode() const { return m_hashcode; }
 
     operator V&() { return m_value; }
 
-    friend bool operator==(const Node<K, V>& a, const Node<K, V>& b);
+    bool operator==(const Node& other) const;
 };
 
 template <Key K, typename V>
-bool operator==(const Node<K, V>& a, const Node<K, V>& b)
+bool Node<K, V>::operator==(const Node<K, V>& other) const
 {
-    return a.key() == b.key();
+    return key() == other.key();
 }
-
-template <Key K, typename V>
-class Rehasher;
 
 template <Key K, typename V>
 class HashMapImpl {
@@ -88,7 +94,7 @@ class HashMapImpl {
 
     std::unique_ptr<std::unique_ptr<HashNode>[]> m_table;
 
-    std::unique_ptr<HashNode>& get_slot_linked_list(uint64_t hcode)
+    std::unique_ptr<HashNode>& get_slot_linked_list(uint64_t hcode) const
     {
         return m_table[hcode & m_mask];
     }
@@ -105,15 +111,15 @@ class HashMapImpl {
     V& insert_or_assign(std::unique_ptr<HashNode> node)
     {
         std::unique_ptr<HashNode>& head_node = get_slot_linked_list(
-            node.hashcode());
+            node->hashcode());
         if (head_node == nullptr) {
-            head_node = node;
-            return;
+            head_node = std::move(node);
+            return head_node->value();
         }
         else if (*head_node == *node) {
             node->m_next = std::move(head_node->m_next);
             head_node    = std::move(node);
-            return;
+            return head_node->value();
         }
 
         HashNode* previous = head_node.get();
@@ -133,12 +139,12 @@ class HashMapImpl {
         current->m_next = std::move(node);
 
         ++m_size;
-        return current->m_next.value();
+        return current->m_next->value();
     }
 
     V& insert_or_assign(K key, V value)
     {
-        return insert(
+        return insert_or_assign(
             std::make_unique<HashNode>(std::move(key), std::move(value)));
     }
 
@@ -151,7 +157,26 @@ class HashMapImpl {
 
         HashNode* current = head_node.get();
         do {
-            if (current->m_hcode == hcode) {
+            if (current->hashcode() == hcode) {
+                return *current;
+            }
+            current = current->m_next.get();
+        } while ((current->m_next));
+
+        return std::nullopt;
+    }
+
+    std::optional<std::reference_wrapper<const HashNode> >
+    get(uint64_t hcode) const
+    {
+        std::unique_ptr<HashNode>& head_node = get_slot_linked_list(hcode);
+        if (head_node == nullptr) {
+            return std::nullopt;
+        }
+
+        HashNode const* current = head_node.get();
+        do {
+            if (current->hashcode() == hcode) {
                 return *current;
             }
             current = current->m_next.get();
@@ -162,13 +187,17 @@ class HashMapImpl {
 
     std::unique_ptr<HashNode> detach(const K& key)
     {
-        HashCode                   hcode     = std::hash<K>{}(key);
+        return detach(key, std::hash<K>{}(key));
+    }
+
+    std::unique_ptr<HashNode> detach(const K& key, HashCode hcode)
+    {
         std::size_t                idx       = hcode & m_mask;
         std::unique_ptr<HashNode>& head_node = m_table[idx];
         if (head_node == nullptr) {
             return nullptr;
         }
-        else if (head_node->m_hcode == hcode && head_node->key() == key) {
+        else if (head_node->hashcode() == hcode && head_node->key() == key) {
             // move the state of head_node (head of slot) out to local
             std::unique_ptr<HashNode> detachedNode = std::move(head_node);
             // set the value of head slot to what detached->m_next is pointing
@@ -181,7 +210,9 @@ class HashMapImpl {
         HashNode* current  = head_node->m_next.get();
 
         do {
-            if (current->m_hcode == hcode && head_node->key() == key) {
+            if (current->hashcode() == hcode && head_node->key() == key) {
+                std::unique_ptr<HashNode> current = std::move(
+                    previous->m_next);
                 previous->m_next = std::move(current->m_next);
                 // move sets next m_next to nullptr.
                 --m_size;
@@ -202,7 +233,7 @@ class Rehasher {
 
     std::size_t rehash_block(std::size_t idx)
     {
-        std::unique_ptr<HashNode>& block = *(m_red_map.m_table)[idx];
+        std::unique_ptr<HashNode>& block = m_red_map.m_table[idx];
         std::size_t                count = 0;
         for (std::size_t count = 0; block != nullptr;
              ++count, --m_red_map.m_size) {
@@ -215,6 +246,12 @@ class Rehasher {
     }
 
   public:
+    Rehasher(HashMapImpl<K, V>& black_map, HashMapImpl<K, V>& red_map)
+    : m_black_map{black_map}
+    , m_red_map{red_map}
+    {
+    }
+
     template <std::size_t REHASH_SIZE>
     void rehash()
     {
@@ -259,7 +296,10 @@ class HashMap {
     {
         HashCode hcode = std::hash<K>{}(key);
         if (auto node = m_black_map.get(hcode)) {
-            return node;
+            return node.transform(
+                [](const HashNode& node) -> std::reference_wrapper<const V> {
+                    return node.value();
+                });
         }
 
         if (!m_red_map) {
@@ -268,7 +308,7 @@ class HashMap {
 
         if (auto node = m_red_map->detach(hcode)) {
             // optional->get to get underlying of reference_wrapper
-            m_black_map.insert(std::move(node->get()));
+            m_black_map.insert_or_assign(std::move(node->get()));
 
             if (m_red_map.size() == 0) [[unlikely]] {
                 m_red_map.reset();
@@ -280,12 +320,37 @@ class HashMap {
         return std::nullopt;
     }
 
+    std::optional<std::reference_wrapper<const V> > get(K key) const
+    {
+        HashCode hcode = std::hash<K>{}(key);
+        if (auto node = m_black_map.get(hcode)) {
+            return node.transform(
+                [](const HashNode& node) -> std::reference_wrapper<const V> {
+                    return node.value();
+                });
+        }
+
+        if (!m_red_map) {
+            return std::nullopt;
+        }
+
+        if (auto node = m_red_map->get(hcode)) {
+            return node.transform(
+                [](const HashNode& node) -> std::reference_wrapper<const V> {
+                    return node.value();
+                });
+        }
+        return std::nullopt;
+    }
+
     std::optional<std::reference_wrapper<V> > insert_or_assign(K key, V value)
     {
         trigger_rehashing();
-        auto mapped_value = m_black_map.insert_or_assign(std::move(key),
-                                                         std::move(value));
-        m_red_map.detach(key);
+        auto& mapped_value = m_black_map.insert_or_assign(std::move(key),
+                                                          std::move(value));
+        if (m_red_map) {
+            m_red_map->detach(key);
+        }
         return mapped_value;
     }
 

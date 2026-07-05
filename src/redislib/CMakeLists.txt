@@ -3,6 +3,7 @@ add_library(redis_lib
     redis_server.cpp
     redis_schema.cpp
     redis_meta.cpp 
+    redis_hashtable.cpp
   )
 
 

@@ -7,8 +7,8 @@
 #include <net_utils.h>
 
 #include <arpa/inet.h>
-#include <iostream>
 #include <netinet/ip.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <sys/socket.h>
 #include <type_traits>
@@ -40,10 +40,10 @@ void run_client()
 {
     std::string address, raw_port;
 
-    std::cout << "[MAIN][CLIENT] Enter the server address to connect to: ";
+    SPDLOG_INFO("[MAIN][CLIENT] Enter the server address to connect to: ");
     std::getline(std::cin, address);
 
-    std::cout << "[MAIN][CLIENT] Enter the server port to connect to: ";
+    SPDLOG_INFO("[MAIN][CLIENT] Enter the server port to connect to: ");
     std::getline(std::cin, raw_port);
 
     int         port     = std::stoi(raw_port);
@@ -53,30 +53,27 @@ void run_client()
     addr.sin_addr.s_addr = ip_address_value(address);
     redis::SyncClient client{connect(std::move(addr))};
     while (true) {
-        std::cout << "Enter the message to send to the server:";
+        SPDLOG_INFO("Enter the message to send to the server:");
 
         std::string message;
         std::string command;
         std::cin >> command;
 
-        std::cout << "[MAIN][CLIENT] parsing command: '" << command << "'"
-                  << std::endl;
+        SPDLOG_DEBUG("[MAIN][CLIENT] parsing command: '{}'", command);
         if (command == "get") {
             std::string key;
             std::cin >> key;
-            std::cout << "[MAIN][CLIENT] GET KEY: '" << key << "'"
-                      << std::endl;
+            SPDLOG_DEBUG("[MAIN][CLIENT] GET KEY: '{}'", key);
             auto response = client.get(key);
             std::visit(
                 [](auto&& arg) {
-                    std::cout
-                        << "[MAIN][CLIENT] ARG TYPE: " << typeid(arg).name()
-                        << std::endl;
+                    SPDLOG_DEBUG("[MAIN][CLIENT] ARG TYPE: {}",
+                                 typeid(arg).name());
                     if constexpr (std::is_same_v<
                                       std::decay_t<decltype(arg)>,
                                       redis::GetResponse<std::string> >) {
-                        std::cout << "[MAIN][CLIENT] received GET response: "
-                                  << arg.value << std::endl;
+                        SPDLOG_INFO("[MAIN][CLIENT] received GET response: {}",
+                                    arg.value);
                     }
                 },
                 response);
@@ -84,19 +81,17 @@ void run_client()
         else if (command == "set") {
             std::string key;
             std::cin >> key;
-            std::cout << "[MAIN][CLIENT] SET KEY: '" << key << "'"
-                      << std::endl;
+            SPDLOG_DEBUG("[MAIN][CLIENT] SET KEY: '{}'", key);
             std::string value;
             std::cin >> value;
-            std::cout << "[MAIN][CLIENT] TO VALUE: '" << value << "'"
-                      << std::endl;
+            SPDLOG_DEBUG("[MAIN][CLIENT] TO VALUE: '{}'", value);
             auto response = client.set(key, value);
             std::visit(
                 [](auto&& arg) {
                     if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
                                                  redis::SetResponse>) {
-                        std::cout << "[MAIN][CLIENT] received SET response: "
-                                  << arg.success << std::endl;
+                        SPDLOG_INFO("[MAIN][CLIENT] received SET response: {}",
+                                    arg.success);
                     }
                 },
                 response);
@@ -106,9 +101,9 @@ void run_client()
 
 int main()
 {
-    std::cout << "[MAIN] Welcome to redis." << std::endl;
+    SPDLOG_INFO("[MAIN] Welcome to redis.");
 
-    std::cout << "[MAIN] booting a test client" << std::endl;
+    SPDLOG_INFO("[MAIN] booting a test client");
     run_client();
 
     return 0;

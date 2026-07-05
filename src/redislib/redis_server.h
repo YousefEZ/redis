@@ -12,6 +12,7 @@
 #include <net_tagged_encoder.h>
 
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <variant>
 
 namespace redis {
@@ -31,8 +32,7 @@ class RedisProcessor {
     template <typename T>
     bool set(std::string key, T value)
     {
-        std::cout << "Setting key: " << key << " with value: " << value
-                  << std::endl;
+        SPDLOG_INFO("Setting key: {} with value: {}", key, value);
         return m_kv_store.insert_or_assign(key, value).has_value();
     }
 

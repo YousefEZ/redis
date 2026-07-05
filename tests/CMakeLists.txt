@@ -11,6 +11,7 @@ enable_testing()
 
 add_executable(
   tests
+  hashtable.t.cpp 
   buffer.t.cpp
   connection.t.cpp
   tagged_encoder.t.cpp
@@ -21,6 +22,7 @@ target_link_libraries(
   net_lib
   redis_lib
   GTest::gtest_main
+  spdlog::spdlog
 )
 
 include(GoogleTest)

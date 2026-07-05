@@ -5,6 +5,7 @@
 #include "net_connection.h"
 #include "net_encoder.h"
 
+#include <spdlog/spdlog.h>
 #include <sys/poll.h>
 
 namespace net {
@@ -31,9 +32,11 @@ requires net::Serde<ENCODER, Buffer, Buffer> class PolledConnection
 
     pollfd get_pollfd() const
     {
-        std::cout << "[SERVER][POLL][GET] POLLFD for connection fd: " << fd()
-                  << ", with signals read: " << m_signals.read
-                  << ", write: " << m_signals.write << std::endl;
+        SPDLOG_DEBUG("[SERVER][POLL][GET] POLLFD for connection fd: {}, with "
+                     "signals read: {}, write: {}",
+                     static_cast<int>(fd()),
+                     m_signals.read,
+                     m_signals.write);
 
         return pollfd{fd(),
                       static_cast<short>((m_signals.read ? POLLIN : 0) |
@@ -63,19 +66,19 @@ requires net::Serde<ENCODER, Buffer, Buffer> void
     if (m_outgoing.write_to(fd(), m_outgoing.size()) < 0) {
         if (errno != EAGAIN) {
             close();
-            std::cout
-                << "[SERVER][CONNECTION][WRITE] connection closed by peer fd: "
-                << fd() << std::endl;
+            SPDLOG_INFO(
+                "[SERVER][CONNECTION][WRITE] connection closed by peer fd: {}",
+                static_cast<int>(fd()));
             return;
         }
-        std::cout << "[SERVER][CONNECTION][WRITE] EAGAIN on connection fd: "
-                  << fd() << std::endl;
+        SPDLOG_DEBUG("[SERVER][CONNECTION][WRITE] EAGAIN on connection fd: {}",
+                     static_cast<int>(fd()));
     }
     else {
         m_outgoing.clear();
-        std::cout << "[SERVER][CONNECTION][WRITE] sent server message on "
-                     "connection fd: "
-                  << fd() << std::endl;
+        SPDLOG_DEBUG("[SERVER][CONNECTION][WRITE] sent server message on "
+                     "connection fd: {}",
+                     static_cast<int>(fd()));
     }
 }
 

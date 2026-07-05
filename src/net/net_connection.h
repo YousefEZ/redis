@@ -6,6 +6,7 @@
 #include <csignal>
 #include <iostream>
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <utility>
@@ -36,8 +37,8 @@ class Connection {
     Connection(FileDescriptor&& fd)
     : m_fd{std::move(fd)}
     {
-        std::cout << "[SERVER][CONNECTION] new connection fd: " << m_fd
-                  << std::endl;
+        SPDLOG_INFO("[SERVER][CONNECTION] new connection fd: {}",
+                    static_cast<int>(m_fd));
     }
 
     Connection(Connection&& other)
@@ -67,21 +68,21 @@ template <typename BUFFER>
 void Connection::read(BUFFER& incoming)
 {
     if (is_closed()) {
-        std::cout
-            << "[SERVER][CONNECTION][READ] connection already closed fd: "
-            << fd() << std::endl;
+        SPDLOG_DEBUG(
+            "[SERVER][CONNECTION][READ] connection already closed fd: {}",
+            static_cast<int>(fd()));
         return;
     }
-    std::cout << "[SERVER][CONNECTION][READ] receiving server message "
-                 "on connection fd: "
-              << fd() << std::endl;
+    SPDLOG_DEBUG("[SERVER][CONNECTION][READ] receiving server message "
+                 "on connection fd: {}",
+                 static_cast<int>(fd()));
 
     ssize_t rc = incoming.read_from(fd());
     if (rc <= 0) {
         close();
-        std::cout
-            << "[SERVER][CONNECTION][READ] connection closed by peer fd: "
-            << fd() << std::endl;
+        SPDLOG_INFO(
+            "[SERVER][CONNECTION][READ] connection closed by peer fd: {}",
+            static_cast<int>(fd()));
         return;
     }
 }

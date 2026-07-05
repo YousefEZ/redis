@@ -8,6 +8,8 @@
 #include <ranges>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -28,8 +30,9 @@ void prepare_poll_events(
                                             REQUEST_DECODER> >& connections)
 {
     polls.reserve(1 + connections.size());
-    std::cout << "[SERVER][POLL][PREPARE] preparing poll events for "
-              << connections.size() << " connections" << std::endl;
+    SPDLOG_DEBUG("[SERVER][POLL][PREPARE] preparing poll events for "
+                 "{} connections",
+                 connections.size());
     polls.emplace_back(listen_fd, POLLIN, 0);
 
     std::ranges::transform(
@@ -83,8 +86,8 @@ void Server<REQUEST_DECODER, RESPONSE_ENCODER, PROCESSOR>::
         net::PolledConnection<RESPONSE_ENCODER, REQUEST_DECODER>& connection)
 {
     if (poll.revents & POLLERR) {
-        std::cout << "[SERVER][CONNECTION][ERROR] error on connection fd: "
-                  << connection.fd() << std::endl;
+        SPDLOG_ERROR("[SERVER][CONNECTION][ERROR] error on connection fd: {}",
+                     static_cast<int>(connection.fd()));
         connection.close();
         return;
     }
@@ -143,9 +146,9 @@ void Server<REQUEST_DECODER, RESPONSE_ENCODER, PROCESSOR>::accept_connection(
         return;
     }
     connfd.as_non_blocking();
-    std::cout
-        << "[SERVER][CONNECTION][ACCEPT] Accepted new connection with fd: "
-        << connfd << std::endl;
+    SPDLOG_INFO(
+        "[SERVER][CONNECTION][ACCEPT] Accepted new connection with fd: {}",
+        static_cast<int>(connfd));
     m_connections.emplace_back(std::move(connfd),
                                Signals{.read = true, .write = false});
 }

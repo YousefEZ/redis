@@ -5,8 +5,8 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <memory>
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 namespace net {
@@ -72,8 +72,7 @@ ssize_t Buffer::read_from(const int fd)
             return first_read;
         data_end = data_end + first_read;
         if (first_read < max_read) {
-            std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << first_read
-                      << std::endl;
+            SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}", fd, first_read);
             hexdump_pretty(data_end - first_read, first_read);
             return first_read;
         }
@@ -84,13 +83,14 @@ ssize_t Buffer::read_from(const int fd)
         if (second_read < 0)
             return second_read;
         data_end = start.get() + second_read;
-        std::cout << "[BUFFER] read_from fd=" << fd
-                  << " rv=" << first_read + second_read << std::endl;
+        SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}",
+                     fd,
+                     first_read + second_read);
         return second_read + first_read;
     }
 
     ssize_t rv = read(fd, data_end, data_start - data_end);
-    std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << rv << std::endl;
+    SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}", fd, rv);
     if (rv >= 0) [[likely]]
         data_end += rv;
     return rv;
@@ -147,7 +147,7 @@ void Buffer::cpy(void* dst, ssize_t n, ssize_t offset) const
                n - last_part_size);
         return;
     }
-    std::cout << "[BUFFER] cpy n=" << n << " offset=" << offset << std::endl;
+    SPDLOG_DEBUG("[BUFFER] cpy n={} offset={}", n, offset);
     hexdump_pretty(offset_start_pos, n);
     memcpy(dst, offset_start_pos, n);
 }

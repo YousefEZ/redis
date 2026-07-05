@@ -109,6 +109,8 @@ class HashMapImpl {
                "size must be power of 2");
     }
 
+    std::size_t bucket_count() const { return m_mask + 1; }
+
     std::size_t size() const { return m_size; }
 
     V& insert_or_assign(std::unique_ptr<HashNode> node)
@@ -165,7 +167,7 @@ class HashMapImpl {
         }
 
         HashNode* current = head_node.get();
-        do {
+        while (current) {
             if (current->hashcode() == hcode) {
                 SPDLOG_DEBUG("found node with key: {} and value: {}",
                              current->key(),
@@ -173,7 +175,7 @@ class HashMapImpl {
                 return *current;
             }
             current = current->m_next.get();
-        } while ((current->m_next));
+        }
 
         SPDLOG_DEBUG("node with hashcode: {} not found", hcode);
         return std::nullopt;
@@ -253,9 +255,9 @@ class Rehasher {
         std::unique_ptr<HashNode>& block = m_red_map.m_table[idx];
         std::size_t                count = 0;
         for (std::size_t count = 0; block != nullptr;
-             ++count, --m_red_map.m_size) {
+             ++count, ++m_red_map.m_size, --m_black_map.m_size) {
             std::unique_ptr<HashNode> next = std::move(block->m_next);
-            m_black_map.insert_or_assign(std::move(block));
+            m_red_map.insert_or_assign(std::move(block));
 
             block = std::move(next);
         }
@@ -270,18 +272,21 @@ class Rehasher {
     }
 
     template <std::size_t REHASH_SIZE>
-    void rehash()
+    std::size_t rehash(std::size_t current_idx)
     {
         std::size_t count = 0;
-        for (std::size_t idx = 0;
-             count < REHASH_SIZE && idx <= m_red_map.m_mask;
-             idx++) {
+        std::size_t idx   = current_idx;
+        for (; count < REHASH_SIZE && idx <= m_red_map.m_mask; ++idx) {
             count += rehash_block(idx);
         }
+        return idx;
     }
 };
 
-template <Key K, typename V, std::size_t REHASH_SIZE = 128>
+template <Key K,
+          typename V,
+          std::size_t REHASH_SIZE     = 128,
+          std::size_t MAX_LOAD_FACTOR = 8>
 class HashMap {
     using HashNode = Node<K, V>;
 
@@ -291,16 +296,32 @@ class HashMap {
     std::optional<HashMapImpl<K, V> > m_red_map            = std::nullopt;
     uint64_t                          m_migration_position = 0;
 
-    void resize() {}
+    void resize(std::size_t new_size)
+    {
+        assert(m_red_map == std::nullopt &&
+               "resize should not be called during rehash");
 
-    // TODO: think about whether the trigger should be implicit or explicit
+        m_red_map.emplace(new_size);
+    }
+
     void trigger_rehashing()
     {
         if (!m_red_map) {
             return;
         }
 
-        Rehasher{m_black_map, *m_red_map}.template rehash<REHASH_SIZE>();
+        m_migration_position =
+            Rehasher{m_black_map, *m_red_map}.template rehash<REHASH_SIZE>(
+                m_migration_position);
+
+        if (m_migration_position < m_black_map.bucket_count()) {
+            // migration not complete
+            return;
+        }
+
+        m_black_map = std::move(*m_red_map);
+        m_red_map.reset();
+        m_migration_position = 0;
     }
 
   public:
@@ -362,11 +383,21 @@ class HashMap {
 
     std::optional<std::reference_wrapper<V> > insert_or_assign(K key, V value)
     {
-        trigger_rehashing();
+        if (m_red_map) {
+            m_black_map.detach(key);
+            auto& mapped_value = m_red_map->insert_or_assign(std::move(key),
+                                                             std::move(value));
+            trigger_rehashing();
+            return mapped_value;
+        }
+
         auto& mapped_value = m_black_map.insert_or_assign(std::move(key),
                                                           std::move(value));
-        if (m_red_map) {
-            m_red_map->detach(key);
+        // load_factor (L) = size / buckets (avg bucket size), L_MAX is
+        // therefore max avg size of a bucket
+        if (m_black_map.size() >
+            MAX_LOAD_FACTOR * m_black_map.bucket_count()) {
+            resize(m_black_map.bucket_count() << 1);
         }
         return mapped_value;
     }

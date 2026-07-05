@@ -12,4 +12,4 @@ add_library(net_lib
 
 
 target_include_directories(net_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(net_lib PRIVATE spdlog::spdlog)
+target_link_libraries(net_lib PRIVATE spdlog::spdlog fmt::fmt)

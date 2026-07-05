@@ -12,7 +12,14 @@ FetchContent_Declare(
     GIT_TAG v1.17.0
 )
 
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git 
+    GIT_TAG 12.2.0
+)
+
 FetchContent_MakeAvailable(spdlog)
+FetchContent_MakeAvailable(fmt)
 
 
 add_subdirectory(src)

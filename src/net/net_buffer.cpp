@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fmt/format.h>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -26,7 +27,10 @@ std::string hexdump_pretty(const void* data, std::size_t size)
         const unsigned char* addr = base + offset;
 
         // address and offset
-        fmt::format_to(inserter, "{:p} (+{})", (const void*)addr, offset);
+        fmt::format_to(inserter,
+                       "Dumping buffer: \n{:p} (+{})  ",
+                       (const void*)addr,
+                       offset);
 
         // hex bytes
         for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
@@ -45,7 +49,7 @@ std::string hexdump_pretty(const void* data, std::size_t size)
         for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
             if (offset + i < size) {
                 unsigned char c = addr[i];
-                fmt::format_to(inserter, "{}", std::isprint(c) ? c : '.');
+                fmt::format_to(inserter, "{:c}", std::isprint(c) ? c : '.');
             }
             else {
                 fmt::format_to(inserter, " ");
@@ -54,6 +58,7 @@ std::string hexdump_pretty(const void* data, std::size_t size)
 
         fmt::format_to(inserter, "|\n");
     }
+
     return fmt::to_string(buf);
 }
 

@@ -136,7 +136,7 @@ class HashMapImpl {
                 // the key already exists, so we just need to assign the value
                 node->m_next        = std::move((*current)->m_next);
                 (*previous)->m_next = std::move(node);
-                return node->value();
+                return (*previous)->m_next->value();
             }
             previous = current;
             current  = &((*current)->m_next);
@@ -194,12 +194,15 @@ class HashMapImpl {
         }
 
         HashNode const* current = head_node.get();
-        do {
+        while (current) {
             if (current->hashcode() == hcode) {
+                SPDLOG_DEBUG("found node with key: {} and value: {}",
+                             current->key(),
+                             current->value());
                 return *current;
             }
             current = current->m_next.get();
-        } while ((current->m_next));
+        }
 
         return std::nullopt;
     }
@@ -228,7 +231,7 @@ class HashMapImpl {
         HashNode* previous = head_node.get();
         HashNode* current  = head_node->m_next.get();
 
-        do {
+        while (current) {
             if (current->hashcode() == hcode && head_node->key() == key) {
                 std::unique_ptr<HashNode> current = std::move(
                     previous->m_next);
@@ -239,7 +242,7 @@ class HashMapImpl {
             }
             previous = current;
             current  = current->m_next.get();
-        } while ((current->m_next));
+        }
 
         return nullptr;
     }
@@ -252,9 +255,9 @@ class Rehasher {
 
     std::size_t rehash_block(std::size_t idx)
     {
-        std::unique_ptr<HashNode>& block = m_red_map.m_table[idx];
+        std::unique_ptr<HashNode>& block = m_black_map.m_table[idx];
         std::size_t                count = 0;
-        for (std::size_t count = 0; block != nullptr;
+        for (; block != nullptr;
              ++count, ++m_red_map.m_size, --m_black_map.m_size) {
             std::unique_ptr<HashNode> next = std::move(block->m_next);
             m_red_map.insert_or_assign(std::move(block));

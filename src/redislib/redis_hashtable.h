@@ -169,9 +169,7 @@ class HashMapImpl {
         HashNode* current = head_node.get();
         while (current) {
             if (current->hashcode() == hcode) {
-                SPDLOG_DEBUG("found node with key: {} and value: {}",
-                             current->key(),
-                             current->value());
+                SPDLOG_DEBUG("found node with key: {}", current->key());
                 return *current;
             }
             current = current->m_next.get();
@@ -196,9 +194,7 @@ class HashMapImpl {
         HashNode const* current = head_node.get();
         while (current) {
             if (current->hashcode() == hcode) {
-                SPDLOG_DEBUG("found node with key: {} and value: {}",
-                             current->key(),
-                             current->value());
+                SPDLOG_DEBUG("found node with key: {}", current->key());
                 return *current;
             }
             current = current->m_next.get();

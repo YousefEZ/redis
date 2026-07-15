@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <netinet/ip.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <sys/socket.h>
 
@@ -20,10 +21,10 @@ void run_server()
 {
     std::string address, raw_port;
 
-    std::cout << "[MAIN][SERVER] Enter the address to bind to: ";
+    SPDLOG_INFO("[MAIN][SERVER] Enter the address to bind to: ");
     std::getline(std::cin, address);
 
-    std::cout << "[MAIN][SERVER] Enter the port to bind to: ";
+    SPDLOG_INFO("[MAIN][SERVER] Enter the port to bind to: ");
     std::getline(std::cin, raw_port);
 
     int         port     = std::stoi(raw_port);
@@ -39,8 +40,8 @@ void run_server()
 
 int main()
 {
-    std::cout << "[MAIN] Welcome to redis." << std::endl;
-    std::cout << "[MAIN] Booting a server" << std::endl;
+    SPDLOG_INFO("[MAIN] Welcome to redis.");
+    SPDLOG_INFO("[MAIN] Booting a server");
     run_server();
 
     return 0;

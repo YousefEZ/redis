@@ -11,6 +11,8 @@ enable_testing()
 
 add_executable(
   tests
+  test_setup.cpp 
+  hashtable.t.cpp 
   buffer.t.cpp
   connection.t.cpp
   tagged_encoder.t.cpp
@@ -20,8 +22,11 @@ target_link_libraries(
   tests
   net_lib
   redis_lib
-  GTest::gtest_main
+  GTest::gtest
+  spdlog::spdlog
 )
+
+target_compile_definitions(tests PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 include(GoogleTest)
 gtest_discover_tests(tests)

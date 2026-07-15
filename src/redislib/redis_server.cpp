@@ -2,6 +2,7 @@
 #include "redis_schema.h"
 
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <utility>
 #include <variant>
@@ -25,9 +26,8 @@ RedisProcessor::operator()(GetRequest request)
 
     return std::visit(
         [](auto&& arg) -> ResponseTypeList::To<std::variant> {
-            std::cout << "GetResponse with type: "
-                      << typeid(std::decay_t<decltype(arg)>).name()
-                      << std::endl;
+            SPDLOG_DEBUG("GetResponse with type: {}",
+                         typeid(std::decay_t<decltype(arg)>).name());
             return GetResponse<std::decay_t<decltype(arg)> >{
                 std::forward<decltype(arg)>(arg)};
         },

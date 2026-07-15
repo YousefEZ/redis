@@ -5,51 +5,61 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <fmt/format.h>
 #include <iostream>
+#include <iterator>
 #include <memory>
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 namespace net {
 
 namespace {
-void hexdump_pretty(const void* data, std::size_t size)
+
+std::string hexdump_pretty(const void* data, std::size_t size)
 {
     const unsigned char* base = static_cast<const unsigned char*>(data);
 
-    constexpr std::size_t BYTES_PER_LINE = 16;
-
+    constexpr std::size_t                         BYTES_PER_LINE = 16;
+    fmt::memory_buffer                            buf;
+    std::back_insert_iterator<fmt::memory_buffer> inserter(buf);
     for (std::size_t offset = 0; offset < size; offset += BYTES_PER_LINE) {
         const unsigned char* addr = base + offset;
 
         // address and offset
-        std::printf("%p (+%08zx)  ", (const void*)addr, offset);
+        fmt::format_to(inserter,
+                       "Dumping buffer: \n{:p} (+{})  ",
+                       (const void*)addr,
+                       offset);
 
         // hex bytes
         for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
             if (offset + i < size)
-                std::printf("%02x ", addr[i]);
+                fmt::format_to(inserter, "{:x} ", addr[i]);
             else
-                std::printf("   ");
+                fmt::format_to(inserter, "   ");
 
             if (i == 7)
-                std::printf(" ");
+                fmt::format_to(inserter, " ");
         }
 
-        std::printf(" |");
+        fmt::format_to(inserter, " |");
 
         // ASCII
         for (std::size_t i = 0; i < BYTES_PER_LINE; ++i) {
             if (offset + i < size) {
                 unsigned char c = addr[i];
-                std::printf("%c", std::isprint(c) ? c : '.');
+                fmt::format_to(inserter, "{:c}", std::isprint(c) ? c : '.');
             }
             else {
-                std::printf(" ");
+                fmt::format_to(inserter, " ");
             }
         }
 
-        std::printf("|\n");
+        fmt::format_to(inserter, "|\n");
     }
+
+    return fmt::to_string(buf);
 }
 
 }  // namespace
@@ -72,9 +82,8 @@ ssize_t Buffer::read_from(const int fd)
             return first_read;
         data_end = data_end + first_read;
         if (first_read < max_read) {
-            std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << first_read
-                      << std::endl;
-            hexdump_pretty(data_end - first_read, first_read);
+            SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}", fd, first_read);
+            SPDLOG_DEBUG(hexdump_pretty(data_end - first_read, first_read));
             return first_read;
         }
         // wrap to data_start
@@ -84,13 +93,14 @@ ssize_t Buffer::read_from(const int fd)
         if (second_read < 0)
             return second_read;
         data_end = start.get() + second_read;
-        std::cout << "[BUFFER] read_from fd=" << fd
-                  << " rv=" << first_read + second_read << std::endl;
+        SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}",
+                     fd,
+                     first_read + second_read);
         return second_read + first_read;
     }
 
     ssize_t rv = read(fd, data_end, data_start - data_end);
-    std::cout << "[BUFFER] read_from fd=" << fd << " rv=" << rv << std::endl;
+    SPDLOG_DEBUG("[BUFFER] read_from fd={} rv={}", fd, rv);
     if (rv >= 0) [[likely]]
         data_end += rv;
     return rv;
@@ -147,8 +157,8 @@ void Buffer::cpy(void* dst, ssize_t n, ssize_t offset) const
                n - last_part_size);
         return;
     }
-    std::cout << "[BUFFER] cpy n=" << n << " offset=" << offset << std::endl;
-    hexdump_pretty(offset_start_pos, n);
+    SPDLOG_DEBUG("[BUFFER] cpy n={} offset={}", n, offset);
+    SPDLOG_DEBUG(hexdump_pretty(offset_start_pos, n));
     memcpy(dst, offset_start_pos, n);
 }
 

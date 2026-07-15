@@ -12,3 +12,14 @@ add_library(net_lib
 
 
 target_include_directories(net_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(net_lib PRIVATE spdlog::spdlog fmt::fmt)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(net_lib PRIVATE
+        SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE
+    )
+else()
+    target_compile_definitions(net_lib PRIVATE
+        SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
+    )
+endif()

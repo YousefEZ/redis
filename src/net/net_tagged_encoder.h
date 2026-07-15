@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <variant>
 
 #define NET_RETURN_IF_NOT_VOID(expr)                                          \
@@ -91,8 +92,9 @@ struct TaggedEncoder {
     static void write_impl(T&& message, BUFFER& buffer)
     {
         Tag id = MESSAGES::template id<std::decay_t<T> >();
-        std::cout << "Serializing message with id " << id << " for type "
-                  << typeid(T).name() << std::endl;
+        SPDLOG_DEBUG("Serializing message with id {} for type {}",
+                     id,
+                     typeid(T).name());
         buffer.append((char*)&id, sizeof(id));
         CODEC<std::decay_t<T> >::serialize(std::forward<T>(message), buffer);
     }
@@ -118,7 +120,7 @@ struct TaggedEncoder {
         }
         Tag tag;
         buffer.cpy(&tag, sizeof(Tag));
-        std::cout << "Deserializing message with id " << tag << std::endl;
+        SPDLOG_DEBUG("Deserializing message with id {}", tag);
         buffer.consume(sizeof(Tag));
         return MESSAGES::dispatch(tag, deserialize, buffer);
     }

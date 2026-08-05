@@ -16,6 +16,7 @@ add_executable(
   buffer.t.cpp
   connection.t.cpp
   tagged_encoder.t.cpp
+  avl_tree.t.cpp
 )
 
 target_link_libraries(

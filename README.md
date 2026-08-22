@@ -1,3 +1,5 @@
+# ⚠️This repository has moved to [codeberg](https://codeberg.org/YousefEZ/redis)
+
 # Redis
 Custom built redis cache server and client in C++. This is a prototype not meant for production use.
 
